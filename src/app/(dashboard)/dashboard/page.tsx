@@ -41,6 +41,7 @@ export default async function DashboardPage() {
   });
 
   // Calcul du nombre de véhicules avec alerte > 90 jours (délai dépassé)
+  // Conformément à l'Article 296 du Code des Douanes : délai légal de 90 jours
   // Récupération de toutes les saisies pour calculer les jours écoulés
   const toutesSaisies = await prisma.saisie.findMany({
     select: {
@@ -48,7 +49,8 @@ export default async function DashboardPage() {
     },
   });
   
-  // Compte les véhicules avec plus de 90 jours écoulés (délai légal dépassé)
+  // Compte les véhicules avec 90 jours ou plus écoulés depuis la date de saisie
+  // Ces véhicules sont éligibles à la vente aux enchères (délai légal dépassé)
   const aVendre = toutesSaisies.filter(
     (saisie) => calculateDaysSinceSaisie(saisie.dateSaisie) >= 90
   ).length;

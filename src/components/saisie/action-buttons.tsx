@@ -50,7 +50,11 @@ export function ActionButtons({ saisieId, numeroChassis }: ActionButtonsProps) {
       // Affichage d'une notification de succès en vert
       toast.success('Sortie validée avec succès');
       
+      // Réinitialisation de l'état de chargement avant le rafraîchissement
+      setIsValidating(false);
+      
       // Rafraîchissement de la page pour afficher les changements
+      // router.refresh() met à jour les données sans bloquer l'UI
       router.refresh();
     } catch (error) {
       // Gestion des erreurs inattendues
@@ -89,7 +93,11 @@ export function ActionButtons({ saisieId, numeroChassis }: ActionButtonsProps) {
       // Affichage d'une notification de succès en vert
       toast.success('Saisie annulée avec succès');
       
+      // Réinitialisation de l'état de chargement avant le rafraîchissement
+      setIsCancelling(false);
+      
       // Rafraîchissement de la page pour afficher les changements
+      // router.refresh() met à jour les données sans bloquer l'UI
       router.refresh();
     } catch (error) {
       // Gestion des erreurs inattendues
