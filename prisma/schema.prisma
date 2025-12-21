@@ -1,0 +1,104 @@
+// Configuration de la base de données PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum des rôles utilisateurs dans le système
+enum Role {
+  ADMIN              // Administrateur système
+  CHEF_BUREAU        // Chef de bureau
+  CHEF_BRIGADE       // Chef de brigade
+  AGENT_BRIGADE      // Agent de brigade (saisie sur terrain)
+  AGENT_CONSULTATION // Agent en consultation (lecture seule)
+}
+
+// Enum des statuts de cycle de vie d'une saisie de véhicule
+enum StatutSaisie {
+  SAISI_EN_COURS      // Véhicule saisi, en cours de traitement
+  VALIDE_POUR_DEPOT   // Saisie validée, prête pour dépôt
+  EN_DEPOT            // Véhicule actuellement en dépôt
+  SORTIE_AUTORISEE    // Autorisation de sortie accordée
+  SORTIE_EFFECTUEE    // Véhicule sorti du dépôt
+  VENTE_ENCHERES      // Véhicule mis en vente aux enchères
+}
+
+// Modèle Utilisateur
+// Représente tous les utilisateurs du système avec leurs rôles et permissions
+model User {
+  id          String   @id @default(uuid())
+  nom         String
+  prenom      String
+  email       String   @unique
+  motDePasse  String   // Hash du mot de passe (bcrypt)
+  role        Role
+  createdAt   DateTime @default(now())
+
+  // Relations
+  saisies     Saisie[]     // Saisies effectuées par cet agent
+  auditLogs   AuditLog[]   // Actions auditées de cet utilisateur
+
+  @@map("users")
+}
+
+// Modèle Saisie (Véhicule)
+// Entité centrale du système : représente un véhicule saisi par les douanes
+// NOTE IMPORTANTE : La gestion des 90 jours sera effectuée par une tâche planifiée (Cron)
+// qui calculera automatiquement les délais à partir du champ dateSaisie
+model Saisie {
+  id                  String        @id @default(uuid())
+  
+  // Informations du véhicule
+  numeroChassis       String        @unique // Numéro de châssis unique (obligatoire)
+  marque              String        // Marque du véhicule
+  modele              String        // Modèle du véhicule
+  typeVehicule        String        // Type de véhicule (voiture, moto, camion, etc.)
+  immatriculation     String?       // Numéro d'immatriculation (optionnel, peut être absent)
+  
+  // Informations du conducteur
+  nomConducteur       String        // Nom complet du conducteur
+  telephoneConducteur String       // Numéro de téléphone du conducteur
+  
+  // Informations de la saisie
+  motifInfraction     String        // Motif de l'infraction ayant entraîné la saisie
+  dateSaisie          DateTime      @default(now()) // Date et heure de la saisie
+  lieuSaisie          String        // Lieu géographique de la saisie
+  
+  // Statut et cycle de vie
+  statut              StatutSaisie  @default(SAISI_EN_COURS) // Statut actuel dans le cycle de vie
+  
+  // Relations
+  agentId             String        // ID de l'agent qui a effectué la saisie
+  agent               User          @relation(fields: [agentId], references: [id])
+  
+  // Logs d'audit associés à cette saisie
+  auditLogs           AuditLog[]
+
+  @@map("saisies")
+}
+
+// Modèle AuditLog (Journal d'audit)
+// Système de traçabilité critique : enregistre toutes les actions importantes
+// pour savoir QUI a fait QUOI et QUAND dans le système
+model AuditLog {
+  id          String    @id @default(uuid())
+  
+  // Détails de l'action
+  action      String    // Type d'action (ex: "VALIDATION_SAISIE", "MODIFICATION_STATUT", etc.)
+  details     String?   // Détails supplémentaires de l'action (JSON ou texte libre)
+  dateAction  DateTime  @default(now()) // Date et heure de l'action
+  
+  // Relations
+  userId      String    // ID de l'utilisateur qui a effectué l'action
+  user        User      @relation(fields: [userId], references: [id])
+  
+  saisieId    String?   // ID de la saisie concernée (optionnel, certaines actions ne concernent pas une saisie)
+  saisie      Saisie?   @relation(fields: [saisieId], references: [id])
+
+  @@map("audit_logs")
+}
+
