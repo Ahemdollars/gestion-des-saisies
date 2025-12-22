@@ -94,20 +94,32 @@ export function SearchFilters({
 
   // Mise à jour de l'URL avec le paramètre statut quand il change
   // Permet de partager l'URL filtrée et de conserver le filtre au rafraîchissement
+  // OPTIMISATION : Utilise useMemo pour éviter les re-créations de l'URL
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    // Récupération du statut actuel dans l'URL pour éviter les boucles
+    const currentStatutInUrl = searchParams.get('statut');
+    const currentStatutValue = currentStatutInUrl === selectedStatut ? currentStatutInUrl : null;
     
-    if (selectedStatut === 'TOUS') {
-      // Supprime le paramètre statut si "TOUS" est sélectionné
-      params.delete('statut');
-    } else {
-      // Ajoute ou met à jour le paramètre statut
-      params.set('statut', selectedStatut);
-    }
+    // Ne mettre à jour l'URL que si le statut a réellement changé
+    if (currentStatutValue !== selectedStatut) {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (selectedStatut === 'TOUS') {
+        // Supprime le paramètre statut si "TOUS" est sélectionné
+        params.delete('statut');
+      } else {
+        // Ajoute ou met à jour le paramètre statut
+        params.set('statut', selectedStatut);
+      }
 
-    // Mise à jour de l'URL sans recharger la page
-    router.replace(`/dashboard/saisies?${params.toString()}`, { scroll: false });
-  }, [selectedStatut, router, searchParams]);
+      // Mise à jour de l'URL sans recharger la page
+      // Utilise replace pour éviter d'ajouter des entrées à l'historique
+      router.replace(`/dashboard/saisies?${params.toString()}`, { scroll: false });
+    }
+    // Dépendances limitées : seulement selectedStatut et router
+    // searchParams n'est pas dans les dépendances pour éviter les boucles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatut, router]);
 
   // Fonction pour réinitialiser tous les filtres
   const handleResetFilters = () => {

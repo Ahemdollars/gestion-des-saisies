@@ -23,16 +23,24 @@ export default async function DashboardLayout({
   }
 
   // Récupération du rôle de l'utilisateur pour le contrôle d'accès RBAC
+  // Conversion explicite en string pour garantir la stabilité de la référence
+  // Le rôle est récupéré UNE SEULE FOIS côté serveur et passé comme prop stable
   const userRole = session.user.role as Role;
+
+  // OPTIMISATION CRITIQUE : Le rôle est passé directement depuis le serveur
+  // Pas de conflit avec useSession côté client car on utilise uniquement auth() côté serveur
+  // Cela évite les conflits de session qui causent des boucles de compilation
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation mobile (visible uniquement sur mobile) */}
       {/* Passe le rôle de l'utilisateur pour filtrer les liens selon les permissions */}
+      {/* Le composant est mémorisé avec React.memo pour éviter les re-rendus inutiles */}
       <MobileNav userRole={userRole} />
 
       {/* Sidebar fixe à gauche (visible uniquement sur desktop) */}
       {/* Passe le rôle de l'utilisateur pour filtrer les liens selon les permissions */}
+      {/* Le composant est mémorisé avec React.memo pour éviter les re-rendus inutiles */}
       <Sidebar userRole={userRole} />
 
       {/* Contenu principal avec marge pour la sidebar sur desktop */}
@@ -46,7 +54,8 @@ export default async function DashboardLayout({
         {/* Contenu de la page */}
         {/* Sur mobile : marge en haut pour le menu burger, marge en bas pour la nav basse */}
         {/* Sur desktop : marge en haut pour le header */}
-        <main className="pt-16 md:pt-16 pb-20 md:pb-8 p-4 md:p-8">
+        {/* pb-24 sur mobile pour laisser de l'espace à la barre de navigation basse */}
+        <main className="pt-16 md:pt-16 pb-24 md:pb-8 p-4 md:p-8">
           {children}
         </main>
       </div>

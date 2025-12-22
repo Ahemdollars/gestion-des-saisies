@@ -39,27 +39,16 @@ export const createSaisieSchema = z.object({
     'Défaut de T1',
     'Contrebande (Art. 429)',
     'Importation sans déclaration (Art. 432)',
-    'Dépassement de délai (Art. 296/440)',
+    'Dépassement délai (Art. 296/440)',
     'Autre (préciser)',
-  ], {
-    errorMap: () => ({ message: 'Veuillez sélectionner un motif d\'infraction' }),
+  ] as const, {
+    message: 'Veuillez sélectionner un motif d\'infraction',
   }),
   // Détails supplémentaires si "Autre (préciser)" est sélectionné
   // Ce champ est optionnel mais sera validé conditionnellement dans le formulaire
   motifInfractionDetails: z.string().max(500, 'Les détails sont trop longs').optional(),
-}).refine(
-  // Validation conditionnelle : si "Autre (préciser)" est sélectionné, les détails sont requis
-  (data) => {
-    if (data.motifInfraction === 'Autre (préciser)') {
-      return data.motifInfractionDetails && data.motifInfractionDetails.trim().length > 0;
-    }
-    return true;
-  },
-  {
-    message: 'Veuillez préciser les détails de l\'infraction',
-    path: ['motifInfractionDetails'], // Le message d'erreur sera associé au champ motifInfractionDetails
-  }
-);
+  
+  // Lieu de saisie
   lieuSaisie: z
     .string()
     .min(1, 'Le lieu de saisie est requis')

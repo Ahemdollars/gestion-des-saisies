@@ -133,24 +133,25 @@ export default async function SaisieDetailPage({
                 </Link>
               )}
               {/* Bouton d'impression */}
-              <PrintNotificationButton
-                saisie={{
-                  numeroChassis: saisie.numeroChassis,
-                  marque: saisie.marque,
-                  modele: saisie.modele,
-                  typeVehicule: saisie.typeVehicule,
-                  immatriculation: saisie.immatriculation,
-                  nomConducteur: saisie.nomConducteur,
-                  telephoneConducteur: saisie.telephoneConducteur,
-                  motifInfraction: saisie.motifInfraction,
-                  lieuSaisie: saisie.lieuSaisie,
-                  dateSaisie: saisie.dateSaisie,
-                  agent: {
-                    prenom: saisie.agent.prenom,
-                    nom: saisie.agent.nom,
-                  },
-                }}
-              />
+            <PrintNotificationButton
+              saisie={{
+                numeroChassis: saisie.numeroChassis,
+                marque: saisie.marque,
+                modele: saisie.modele,
+                typeVehicule: saisie.typeVehicule,
+                immatriculation: saisie.immatriculation,
+                nomConducteur: saisie.nomConducteur,
+                telephoneConducteur: saisie.telephoneConducteur,
+                motifInfraction: saisie.motifInfraction,
+                lieuSaisie: saisie.lieuSaisie,
+                dateSaisie: saisie.dateSaisie,
+                statut: saisie.statut, // Statut pour le QR Code
+                agent: {
+                  prenom: saisie.agent.prenom,
+                  nom: saisie.agent.nom,
+                },
+              }}
+            />
             </div>
           </div>
         </div>

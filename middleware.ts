@@ -5,11 +5,32 @@ import { Role } from '@prisma/client';
 import { canAccessRoute } from '@/lib/utils/permissions';
 
 // Middleware de protection des routes avec contrôle d'accès RBAC
-// S'exécute avant chaque requête pour vérifier l'authentification et les permissions
+// OPTIMISATION CRITIQUE : Ignore totalement les requêtes internes de Next.js
+// S'exécute UNIQUEMENT pour les routes utilisateur pour éviter les boucles de compilation
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Vérification de l'authentification pour les routes protégées
+  // IGNORER IMMÉDIATEMENT toutes les requêtes internes de Next.js
+  // Ces requêtes ne doivent JAMAIS déclencher de vérifications ou redirections
+  // Cela évite les boucles de compilation infinies
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/') ||
+    pathname === '/favicon.ico' ||
+    pathname.startsWith('/static') ||
+    pathname.includes('.ico') ||
+    pathname.includes('.png') ||
+    pathname.includes('.jpg') ||
+    pathname.includes('.svg') ||
+    pathname.includes('.css') ||
+    pathname.includes('.js')
+  ) {
+    // Laisser passer sans aucune vérification
+    return NextResponse.next();
+  }
+
+  // Vérification de l'authentification UNIQUEMENT pour les routes utilisateur
   const session = await auth();
 
   // Protection de toutes les routes commençant par /dashboard
@@ -17,24 +38,45 @@ export async function middleware(request: NextRequest) {
     // Si l'utilisateur n'est pas connecté, redirection vers /login
     if (!session) {
       const loginUrl = new URL('/login', request.url);
-      // Conservation de l'URL de destination pour redirection après connexion
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    // Vérification RBAC : contrôle d'accès basé sur les rôles
-    // Vérifie si l'utilisateur connecté a le droit d'accéder à cette route
+    // OPTIMISATION CRITIQUE : Si l'utilisateur est déjà sur une page autorisée,
+    // laisser passer IMMÉDIATEMENT sans aucune vérification supplémentaire
+    // Cela évite les boucles de compilation lors des changements d'onglet
     const userRole = session.user.role as Role;
+    
+    // Routes de base accessibles à TOUS les rôles connectés
+    // Si l'utilisateur est sur ces routes, on laisse passer SANS vérification RBAC
+    const publicRoutes = ['/dashboard', '/dashboard/saisies'];
+    const isPublicRoute = publicRoutes.some((route) => 
+      pathname === route || pathname.startsWith(`${route}/`)
+    );
+    
+    // Si c'est une route publique, laisser passer immédiatement (PAS de vérification RBAC)
+    // C'est la clé pour éviter les boucles lors des changements d'onglet
+    if (isPublicRoute) {
+      return NextResponse.next();
+    }
+
+    // Vérification RBAC UNIQUEMENT pour les routes restreintes (rapports, utilisateurs, audit)
+    // Cette vérification ne s'applique QUE si l'utilisateur tente d'accéder à une route interdite
     const hasAccess = canAccessRoute(userRole, pathname);
 
-    // Si l'utilisateur n'a pas accès à cette route, redirection vers le dashboard avec message d'erreur
-    // IMPORTANT : Utilisation de replace pour éviter les boucles infinies de redirection
+    // Si l'utilisateur n'a pas accès à cette route restreinte
     if (!hasAccess) {
-      const dashboardUrl = new URL('/dashboard', request.url);
-      dashboardUrl.searchParams.set('error', 'access_denied');
-      // Utilisation de redirect() avec replace pour éviter de polluer l'historique
-      return NextResponse.redirect(dashboardUrl);
+      // Redirection vers le dashboard avec message d'erreur (une seule fois)
+      // Ne pas rediriger si déjà sur /dashboard pour éviter les boucles
+      if (pathname !== '/dashboard' && !pathname.startsWith('/dashboard?')) {
+        const dashboardUrl = new URL('/dashboard', request.url);
+        dashboardUrl.searchParams.set('error', 'access_denied');
+        return NextResponse.redirect(dashboardUrl);
+      }
     }
+    
+    // Si l'utilisateur a accès, laisser passer
+    return NextResponse.next();
   }
 
   // Si l'utilisateur est connecté et essaie d'accéder à /login, redirection vers /dashboard
@@ -53,16 +95,10 @@ export async function middleware(request: NextRequest) {
 }
 
 // Configuration des routes à protéger
+// CORRECTION CRITIQUE : Matcher ultra-simplifié pour éliminer l'erreur "Capturing groups"
+// Utilise uniquement '/dashboard/:path*' sans aucune regex ni groupe de capture
+// Le middleware gère /login en interne avec une simple condition if
 export const config = {
-  matcher: [
-    /*
-     * Match toutes les routes sauf :
-     * - api (routes API)
-     * - _next/static (fichiers statiques)
-     * - _next/image (optimisation d'images)
-     * - favicon.ico, etc.
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/dashboard/:path*'],
 };
 

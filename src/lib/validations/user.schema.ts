@@ -31,7 +31,7 @@ export const createUserSchema = z.object({
   
   // Rôle de l'utilisateur (obligatoire, doit être un des rôles définis)
   role: z.nativeEnum(Role, {
-    errorMap: () => ({ message: 'Rôle invalide' }),
+    message: 'Rôle invalide',
   }),
 });
 

@@ -128,7 +128,8 @@ export async function createUser(data: CreateUserInput): Promise<ActionResult> {
     // Gestion des erreurs de validation Zod
     if (error instanceof ZodError) {
       // Récupération du premier message d'erreur pour l'afficher à l'utilisateur
-      const firstError = error.errors[0];
+      // ZodError utilise 'issues' au lieu de 'errors' dans Zod v4
+      const firstError = error.issues[0];
       return {
         success: false,
         error: firstError?.message || 'Données invalides',

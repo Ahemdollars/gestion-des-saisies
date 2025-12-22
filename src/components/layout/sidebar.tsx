@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { Role } from '@prisma/client';
-import { getAuthorizedRoutes } from '@/lib/utils/permissions';
 
 // Props du composant Sidebar
 interface SidebarProps {
@@ -20,49 +20,85 @@ interface SidebarProps {
   userRole: Role;
 }
 
+// Type pour un élément de navigation avec ses permissions
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  // Tableau des rôles autorisés à voir ce lien
+  rolesAutorises: Role[];
+}
+
+// Configuration complète de tous les liens de navigation possibles
+// Définie en dehors du composant pour éviter la recréation à chaque rendu
+// Chaque lien définit explicitement quels rôles peuvent le voir
+const ALL_NAV_ITEMS: NavItem[] = [
+  {
+    href: '/dashboard',
+    label: 'Tableau de bord',
+    icon: LayoutDashboard,
+    // Tableau de bord : accessible à TOUS les rôles
+    rolesAutorises: [
+      Role.ADMIN,
+      Role.CHEF_BUREAU,
+      Role.CHEF_BRIGADE,
+      Role.AGENT_BRIGADE,
+      Role.AGENT_CONSULTATION,
+    ],
+  },
+  {
+    href: '/dashboard/saisies',
+    label: 'Saisies',
+    icon: FileText,
+    // Saisies : accessible à TOUS les rôles (lecture seule pour AGENT_CONSULTATION)
+    rolesAutorises: [
+      Role.ADMIN,
+      Role.CHEF_BUREAU,
+      Role.CHEF_BRIGADE,
+      Role.AGENT_BRIGADE,
+      Role.AGENT_CONSULTATION,
+    ],
+  },
+  {
+    href: '/dashboard/rapports',
+    label: 'Rapports',
+    icon: BarChart3,
+    // Rapports : accessible uniquement aux ADMIN, CHEF_BUREAU et CHEF_BRIGADE
+    rolesAutorises: [Role.ADMIN, Role.CHEF_BUREAU, Role.CHEF_BRIGADE],
+  },
+  {
+    href: '/dashboard/utilisateurs',
+    label: 'Utilisateurs',
+    icon: Users,
+    // Utilisateurs : accessible UNIQUEMENT aux ADMIN
+    rolesAutorises: [Role.ADMIN],
+  },
+  {
+    href: '/dashboard/audit',
+    label: 'Journal d\'Audit',
+    icon: Activity,
+    // Journal d'Audit : accessible UNIQUEMENT aux ADMIN
+    rolesAutorises: [Role.ADMIN],
+  },
+];
+
 // Composant Sidebar
 // Navigation latérale fixe avec liens de menu filtrés selon les permissions RBAC
 // Affiche uniquement les liens autorisés pour le rôle de l'utilisateur
-export function Sidebar({ userRole }: SidebarProps) {
+// Les liens non autorisés sont complètement invisibles (pas seulement désactivés)
+// Optimisé avec useMemo et React.memo pour éviter les recalculs inutiles et les boucles de re-rendu
+// React.memo empêche le re-rendu si les props (userRole) n'ont pas changé
+const SidebarComponent = ({ userRole }: SidebarProps) => {
   const pathname = usePathname();
 
-  // Configuration complète de tous les liens de navigation possibles
-  const allNavItems = [
-    {
-      href: '/dashboard',
-      label: 'Tableau de bord',
-      icon: LayoutDashboard,
-    },
-    {
-      href: '/dashboard/saisies',
-      label: 'Saisies',
-      icon: FileText,
-    },
-    {
-      href: '/dashboard/rapports',
-      label: 'Rapports',
-      icon: BarChart3,
-    },
-    {
-      href: '/dashboard/utilisateurs',
-      label: 'Utilisateurs',
-      icon: Users,
-    },
-    {
-      href: '/dashboard/audit',
-      label: 'Journal d\'Audit',
-      icon: Activity,
-    },
-  ];
-
-  // Récupération des routes autorisées pour ce rôle
-  // Filtre les liens de navigation selon les permissions RBAC
-  const authorizedRoutes = getAuthorizedRoutes(userRole);
-  
-  // Filtrage des liens de navigation : on garde uniquement ceux autorisés
-  const navItems = allNavItems.filter((item) =>
-    authorizedRoutes.some((route) => item.href.startsWith(route))
-  );
+  // Filtrage des liens de navigation selon le rôle de l'utilisateur
+  // Utilise useMemo pour mémoriser le résultat et éviter les recalculs à chaque rendu
+  // Ne recalcule que si userRole change, ce qui évite les boucles de compilation
+  const navItems = useMemo(() => {
+    return ALL_NAV_ITEMS.filter((item) =>
+      item.rolesAutorises.includes(userRole)
+    );
+  }, [userRole]); // Dépendance uniquement sur userRole, qui est stable
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/login' });
@@ -117,5 +153,12 @@ export function Sidebar({ userRole }: SidebarProps) {
     </div>
     </>
   );
-}
+};
+
+// Export du composant mémorisé avec React.memo
+// Ne se re-rend que si userRole change (comparaison stricte)
+export const Sidebar = memo(SidebarComponent, (prevProps, nextProps) => {
+  // Comparaison personnalisée : ne re-rend que si le rôle change
+  return prevProps.userRole === nextProps.userRole;
+});
 

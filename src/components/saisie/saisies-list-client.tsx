@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AlerteBadge } from '@/components/ui/alerte-badge';
@@ -54,9 +54,22 @@ export function SaisiesListClient({ initialSaisies, canCreate = true }: SaisiesL
     statutFromUrl || 'TOUS'
   );
 
+  // CORRECTION CRITIQUE : Utilise useRef pour mémoriser la dernière clé de hachage
+  // Cela évite les re-créations inutiles si initialSaisies change de référence mais pas de contenu
+  const prevIdsRef = useRef<string>('');
+  
+  // Création d'une clé de hachage basée sur les IDs pour détecter les vrais changements
+  const currentIds = initialSaisies.map(s => s.id).join(',');
+  const hasChanged = prevIdsRef.current !== currentIds;
+  
+  // Mise à jour de la référence si le contenu a changé
+  if (hasChanged) {
+    prevIdsRef.current = currentIds;
+  }
+
   // Transformation stable des données pour SearchFilters
-  // Utilise useMemo pour créer une référence stable qui ne change que si initialSaisies change
-  // Cela évite les re-créations à chaque rendu qui causent des boucles infinies
+  // CORRECTION CRITIQUE : Ne recalcule que si les IDs ont vraiment changé
+  // Utilise la clé de hachage pour éviter les re-créations inutiles
   const saisiesForSearch = useMemo(() => {
     return initialSaisies.map((s) => ({
       id: s.id,
@@ -65,11 +78,13 @@ export function SaisiesListClient({ initialSaisies, canCreate = true }: SaisiesL
       nomConducteur: s.nomConducteur,
       statut: s.statut,
     }));
-  }, [initialSaisies]);
+    // Dépendance uniquement sur la clé de hachage (stable) et la longueur
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIds, initialSaisies.length]);
 
   // Filtrage optimisé avec useMemo
-  // Recalcule uniquement si initialSaisies, searchQuery ou selectedStatut changent
-  // Cela évite les re-rendus inutiles et les boucles infinies
+  // CORRECTION CRITIQUE : Ne recalcule que si le contenu réel change
+  // Utilise la clé de hachage pour éviter les re-créations inutiles
   const filteredSaisies = useMemo(() => {
     let result = [...initialSaisies];
 
@@ -96,7 +111,9 @@ export function SaisiesListClient({ initialSaisies, canCreate = true }: SaisiesL
     }
 
     return result;
-  }, [initialSaisies, searchQuery, selectedStatut]);
+    // Dépendances limitées : clé de hachage (stable), longueur, et états de recherche
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIds, initialSaisies.length, searchQuery, selectedStatut]);
 
   // Fonction de callback stable pour SearchFilters
   // Utilise useCallback pour créer une référence stable qui ne change pas à chaque rendu

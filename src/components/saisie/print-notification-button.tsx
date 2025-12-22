@@ -17,6 +17,7 @@ interface SaisieNotificationData {
   motifInfraction: string;
   lieuSaisie: string;
   dateSaisie: Date;
+  statut: string; // Statut de la saisie pour le QR Code
   agent: {
     prenom: string;
     nom: string;
@@ -45,11 +46,12 @@ export function PrintNotificationButton({ saisie }: PrintNotificationButtonProps
       // Affichage d'une notification de chargement
       toast.loading('Génération de la notification en cours...', { id: 'print-notification' });
 
-      // Génération du PDF (fonction synchrone mais peut prendre du temps)
+      // Génération du PDF (fonction asynchrone car elle génère des QR codes)
       // On utilise setTimeout pour permettre au toast de s'afficher
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
-          generateNotificationPDF(saisie);
+          // Génération du PDF avec QR codes (fonction asynchrone)
+          await generateNotificationPDF(saisie);
           
           // Notification de succès
           toast.success('Notification générée avec succès', { id: 'print-notification' });

@@ -334,7 +334,7 @@ export default function EditSaisiePage() {
                     <option value="Défaut de T1">Défaut de T1</option>
                     <option value="Contrebande (Art. 429)">Contrebande (Art. 429)</option>
                     <option value="Importation sans déclaration (Art. 432)">Importation sans déclaration (Art. 432)</option>
-                    <option value="Dépassement de délai (Art. 296/440)">Dépassement de délai (Art. 296/440)</option>
+                    <option value="Dépassement délai (Art. 296/440)">Dépassement délai (Art. 296/440)</option>
                     <option value="Autre (préciser)">Autre (préciser)</option>
                   </select>
                   {errors.motifInfraction && (

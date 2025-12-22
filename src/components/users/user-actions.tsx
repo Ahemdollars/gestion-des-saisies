@@ -79,7 +79,10 @@ export function UserActions({
    */
   const handleEdit = () => {
     // Pour l'instant, on affiche un message
-    toast.info('Fonctionnalité de modification à venir');
+    toast('Fonctionnalité de modification à venir', {
+      icon: 'ℹ️',
+      duration: 3000,
+    });
     // TODO: Rediriger vers /dashboard/utilisateurs/[id]/edit
   };
 

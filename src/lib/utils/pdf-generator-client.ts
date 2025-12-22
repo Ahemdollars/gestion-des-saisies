@@ -30,12 +30,13 @@ export function generateRapportPDFClient(
   });
 
   // Configuration des couleurs
-  const primaryColor = [0, 51, 102]; // Bleu foncé (couleur Douanes)
-  const secondaryColor = [200, 200, 200]; // Gris clair pour les bordures
+  // Utilisation de tuples pour TypeScript (type [number, number, number])
+  const primaryColor: [number, number, number] = [0, 51, 102]; // Bleu foncé (couleur Douanes)
+  const secondaryColor: [number, number, number] = [200, 200, 200]; // Gris clair pour les bordures
 
   // En-tête du document avec logo et titre
   doc.setFontSize(20);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text('DOUANES MALI', 105, 20, { align: 'center' });
 
@@ -48,7 +49,7 @@ export function generateRapportPDFClient(
   doc.text(`Rapport Annuel ${annee}`, 105, 35, { align: 'center' });
 
   // Ligne de séparation
-  doc.setDrawColor(...secondaryColor);
+  doc.setDrawColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.setLineWidth(0.5);
   doc.line(20, 42, 190, 42);
 
@@ -104,7 +105,7 @@ export function generateRapportPDFClient(
   const finalY = (doc as any).lastAutoTable.finalY || 100;
 
   // Ajout d'une ligne de séparation avant la signature
-  doc.setDrawColor(...secondaryColor);
+  doc.setDrawColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.setLineWidth(0.5);
   doc.line(20, finalY + 10, 190, finalY + 10);
 

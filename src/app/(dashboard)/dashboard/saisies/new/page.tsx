@@ -136,7 +136,9 @@ export default function NewSaisiePage() {
         </div>
 
         {/* Formulaire dans une carte avec coins très arrondis et ombre douce */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 lg:p-10">
+        {/* OPTIMISATION MOBILE : Padding réduit sur mobile (p-4) pour maximiser l'espace */}
+        {/* Largeur totale sur téléphone pour une utilisation confortable sur le terrain */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 md:p-8 lg:p-10 w-full">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* Message d'erreur global */}
             {submitError && (
@@ -282,7 +284,7 @@ export default function NewSaisiePage() {
                     <option value="Défaut de T1">Défaut de T1</option>
                     <option value="Contrebande (Art. 429)">Contrebande (Art. 429)</option>
                     <option value="Importation sans déclaration (Art. 432)">Importation sans déclaration (Art. 432)</option>
-                    <option value="Dépassement de délai (Art. 296/440)">Dépassement de délai (Art. 296/440)</option>
+                    <option value="Dépassement délai (Art. 296/440)">Dépassement délai (Art. 296/440)</option>
                     <option value="Autre (préciser)">Autre (préciser)</option>
                   </select>
                   {errors.motifInfraction && (

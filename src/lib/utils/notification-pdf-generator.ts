@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import QRCode from 'qrcode';
 
 // Interface pour les données d'une saisie nécessaires à la notification
 interface SaisieNotificationData {
@@ -13,6 +14,7 @@ interface SaisieNotificationData {
   motifInfraction: string;
   lieuSaisie: string;
   dateSaisie: Date;
+  statut: string; // Statut de la saisie pour le QR Code (requis)
   agent: {
     prenom: string;
     nom: string;
@@ -20,13 +22,43 @@ interface SaisieNotificationData {
 }
 
 /**
+ * Génère un QR Code pour une saisie
+ * Le QR Code contient le numéro de châssis et le statut pour vérification rapide
+ * 
+ * @param numeroChassis - Numéro de châssis du véhicule
+ * @param statut - Statut actuel de la saisie
+ * @returns Promise<string> - URL de l'image du QR Code en base64
+ */
+async function generateQRCode(numeroChassis: string, statut: string): Promise<string> {
+  // Données encodées dans le QR Code : format JSON pour faciliter la lecture
+  const qrData = JSON.stringify({
+    chassis: numeroChassis,
+    statut: statut,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Génération du QR Code en format base64 (image PNG)
+  const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+    width: 60, // Taille du QR Code en pixels (60x60)
+    margin: 1,
+    color: {
+      dark: '#000000', // Couleur des modules (noir)
+      light: '#FFFFFF', // Couleur de fond (blanc)
+    },
+  });
+
+  return qrCodeDataUrl;
+}
+
+/**
  * Génère un PDF de notification officielle "3 volets"
- * Format : Volet Propriétaire, Volet Véhicule, Souche Guichet
+ * Format : Volet Propriétaire, Volet Véhicule, Souche Guichet Unique
  * Séparés par des pointillés comme stipulé dans le cahier des charges
+ * Chaque volet contient un QR Code pour vérification rapide
  * 
  * @param saisie - Données de la saisie à inclure dans la notification
  */
-export function generateNotificationPDF(saisie: SaisieNotificationData): void {
+export async function generateNotificationPDF(saisie: SaisieNotificationData): Promise<void> {
   // Création d'un nouveau document PDF en format A4 (portrait)
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -55,26 +87,36 @@ export function generateNotificationPDF(saisie: SaisieNotificationData): void {
     }
   };
 
-  // Fonction pour générer un volet complet
+  // Génération du QR Code une seule fois pour tous les volets
+  // Le QR Code contient le numéro de châssis et le statut pour vérification rapide
+  const qrCodeImage = await generateQRCode(saisie.numeroChassis, saisie.statut);
+
+  // Fonction pour générer un volet complet avec QR Code
+  // Accède à qrCodeImage depuis la portée parente
   const generateVolet = (
     startY: number,
     title: string,
+    qrCodeImage: string, // QR Code passé en paramètre pour chaque volet
     isLast: boolean = false
   ) => {
     let currentY = startY;
 
-    // En-tête avec logo et titre
-    doc.setFontSize(16);
+    // En-tête avec logo "Douanes Mali" et titre
+    // Logo centré en haut de chaque volet
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 139); // Bleu marine pour le logo
     doc.text('DOUANES MALI', pageWidth / 2, currentY, { align: 'center' });
-    currentY += 8;
+    currentY += 7;
 
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Noir pour le reste
     doc.text('GUICHET UNIQUE - GESTION DES SAISIES', pageWidth / 2, currentY, { align: 'center' });
-    currentY += 6;
+    currentY += 5;
 
-    doc.setFontSize(10);
+    // Titre du volet (PROPRIÉTAIRE, VÉHICULE, SOUCHE GUICHET)
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(title, pageWidth / 2, currentY, { align: 'center' });
     currentY += 8;
@@ -183,11 +225,65 @@ export function generateNotificationPDF(saisie: SaisieNotificationData): void {
 
     currentY += 5;
 
+    currentY += 3;
+
+    // Mentions légales selon le motif de l'infraction
+    // CONFORMITÉ CAHIER DES CHARGES : Affichage des articles de loi (Art. 296, 429, 432, 440)
+    // Les articles 429 et 432 doivent TOUJOURS être affichés selon le cahier des charges
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100); // Gris pour les mentions légales
+    doc.text('Références légales :', margin, currentY);
+    currentY += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    // CONFORMITÉ : Les articles 429 et 432 sont TOUJOURS affichés sur le document
+    // Conformément au cahier des charges des Douanes du Mali
+    const articlesLegaux: string[] = [
+      'Art. 429 - Contrebande',
+      'Art. 432 - Importation sans déclaration',
+    ];
+    
+    // Ajout de l'article 296 (toujours présent pour le délai de dépôt)
+    articlesLegaux.push('Art. 296 - Délai de dépôt (90 jours)');
+    
+    // Ajout de l'article 440 si le motif concerne le dépassement de délai
+    if (saisie.motifInfraction.includes('440') || saisie.motifInfraction.includes('Dépassement')) {
+      articlesLegaux.push('Art. 440 - Dépassement de délai');
+    }
+    
+    // Affichage de tous les articles légaux
+    articlesLegaux.forEach((article) => {
+      doc.text(`• ${article}`, margin + 5, currentY);
+      currentY += 3.5;
+    });
+    
+    currentY += 3;
+    doc.setTextColor(0, 0, 0); // Retour au noir pour le QR Code
+
+    // QR Code pour vérification rapide
+    // Positionné en bas à droite de chaque volet
+    const qrSize = 20; // Taille du QR Code en mm
+    const qrX = pageWidth - margin - qrSize - 5; // Position X (à droite avec marge)
+    const qrY = currentY; // Position Y (après les informations)
+    
+    // Ajout du QR Code au PDF
+    doc.addImage(qrCodeImage, 'PNG', qrX, qrY, qrSize, qrSize);
+    
+    // Label sous le QR Code
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('QR Code', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    doc.text('Vérification', qrX + qrSize / 2, qrY + qrSize + 5.5, { align: 'center' });
+
+    currentY += qrSize + 8;
+
     // Ligne de signature
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9);
     doc.text('Signature et cachet du Chef de Bureau', margin, currentY);
-    doc.text('Date : _______________', pageWidth - margin - 40, currentY);
+    doc.text('Date : _______________', pageWidth - margin - qrSize - 15, currentY);
     currentY += 8;
 
     // Ligne pointillée de séparation (sauf pour le dernier volet)
@@ -198,19 +294,20 @@ export function generateNotificationPDF(saisie: SaisieNotificationData): void {
     return currentY;
   };
 
-  // Génération des 3 volets
+  // Génération des 3 volets selon la procédure officielle des Douanes du Mali
+  // Conformité document source : 3 documents identiques sur une page A4
   let startY = margin + 10;
   
-  // Volet 1 : Propriétaire
-  startY = generateVolet(startY, 'VOLET PROPRIÉTAIRE', false);
+  // Volet 1 : PROPRIÉTAIRE (Document 1) - À remettre au conducteur
+  startY = generateVolet(startY, 'VOLET PROPRIÉTAIRE (Document 1)', qrCodeImage, false);
   startY += 5;
 
-  // Volet 2 : Véhicule
-  startY = generateVolet(startY, 'VOLET VÉHICULE', false);
+  // Volet 2 : VÉHICULE (Document 2) - À laisser sur le tableau de bord
+  startY = generateVolet(startY, 'VOLET VÉHICULE (Document 2)', qrCodeImage, false);
   startY += 5;
 
-  // Volet 3 : Souche Guichet
-  generateVolet(startY, 'SOUCHE GUICHET', true);
+  // Volet 3 : SOUCHE GUICHET (Document 3) - Document de référence pour le PV
+  generateVolet(startY, 'SOUCHE GUICHET (Document 3)', qrCodeImage, true);
 
   // Téléchargement automatique du PDF
   const fileName = `Notification_Saisie_${saisie.numeroChassis}_${new Date().toISOString().split('T')[0]}.pdf`;

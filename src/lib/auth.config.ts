@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
+import { Role } from '@prisma/client';
 
 // Configuration de base de NextAuth
 // Ce fichier contient la configuration des providers et callbacks
@@ -91,7 +92,7 @@ export const authConfig = {
       // Ajout du rôle et de l'ID utilisateur dans la session
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as Role;
       }
       return session;
     },
