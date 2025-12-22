@@ -4,12 +4,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 
 // Composant client pour sélectionner l'année des rapports
-// Permet de basculer entre 2024 et 2025 (ou année en cours)
+// Permet de sélectionner parmi toutes les années disponibles dans la base de données
+// Système dynamique qui s'adapte automatiquement aux années présentes
 interface YearSelectorProps {
   currentYear: number;
+  availableYears: number[];
 }
 
-export function YearSelector({ currentYear }: YearSelectorProps) {
+export function YearSelector({
+  currentYear,
+  availableYears,
+}: YearSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedYear = searchParams.get('annee')
@@ -25,9 +30,6 @@ export function YearSelector({ currentYear }: YearSelectorProps) {
     params.set('annee', year.toString());
     router.push(`/dashboard/rapports?${params.toString()}`);
   };
-
-  // Liste des années disponibles (2024 et 2025)
-  const availableYears = [2024, 2025];
 
   return (
     <div className="flex items-center gap-3">

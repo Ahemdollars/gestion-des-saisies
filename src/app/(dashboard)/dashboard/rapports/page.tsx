@@ -21,10 +21,35 @@ export default async function RapportsPage({
     redirect('/login');
   }
 
+  // Récupération de toutes les années distinctes présentes dans la table Saisie
+  // Optimisation : récupération uniquement des dates nécessaires (pas toutes les données)
+  const toutesSaisies = await prisma.saisie.findMany({
+    select: {
+      dateSaisie: true,
+    },
+    // Limite optionnelle pour améliorer les performances si beaucoup de données
+    // On garde toutes les saisies car on a besoin de toutes les années
+  });
+
+  // Extraction des années uniques depuis les dates de saisie
+  // Utilisation d'un Set pour garantir l'unicité
+  const anneesUniques = new Set<number>();
+  toutesSaisies.forEach((saisie) => {
+    const annee = new Date(saisie.dateSaisie).getFullYear();
+    anneesUniques.add(annee);
+  });
+
+  // Ajout de l'année en cours même si aucune saisie n'a encore été faite
+  const anneeEnCours = new Date().getFullYear();
+  anneesUniques.add(anneeEnCours);
+
+  // Tri des années de la plus récente à la plus ancienne
+  const anneesDisponibles = Array.from(anneesUniques).sort((a, b) => b - a);
+
   // Récupération de l'année sélectionnée (par défaut année en cours)
   const anneeSelectionnee = params.annee
     ? parseInt(params.annee)
-    : new Date().getFullYear();
+    : anneeEnCours;
 
   // Calcul de la date de début de l'année sélectionnée
   const debutAnnee = new Date(`${anneeSelectionnee}-01-01`);
@@ -164,8 +189,11 @@ export default async function RapportsPage({
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {/* Sélecteur d'année */}
-            <YearSelector currentYear={new Date().getFullYear()} />
+            {/* Sélecteur d'année dynamique avec toutes les années disponibles */}
+            <YearSelector
+              currentYear={anneeEnCours}
+              availableYears={anneesDisponibles}
+            />
             {/* Bouton d'export PDF */}
             <ExportButton />
           </div>

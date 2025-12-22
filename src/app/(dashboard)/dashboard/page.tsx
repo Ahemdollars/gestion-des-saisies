@@ -42,7 +42,8 @@ export default async function DashboardPage() {
 
   // Calcul du nombre de véhicules avec alerte > 90 jours (délai dépassé)
   // Conformément à l'Article 296 du Code des Douanes : délai légal de 90 jours
-  // Récupération de toutes les saisies pour calculer les jours écoulés
+  // Le guichet unique doit surveiller rigoureusement le délai de 90 jours
+  // Optimisation : récupération uniquement des dates nécessaires
   const toutesSaisies = await prisma.saisie.findMany({
     select: {
       dateSaisie: true,
@@ -97,12 +98,14 @@ export default async function DashboardPage() {
           icon={<FileText className="h-6 w-6" />}
           description="Ce mois-ci"
         />
+        {/* Carte cliquable pour les véhicules en vente aux enchères */}
         <KPICard
           title="Délai dépassé (>90j)"
           value={aVendre}
           icon={<Gavel className="h-6 w-6" />}
           variant="alert"
           description="Vente aux enchères"
+          href="/dashboard/saisies?filtre=vente-encheres"
         />
       </div>
 

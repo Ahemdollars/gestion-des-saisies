@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* Configuration des couleurs en mode clair par défaut */
+/* Force le mode clair pour éviter les conflits de couleurs */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,15 +14,60 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Désactivation du mode sombre pour garantir la lisibilité */
+/* Le système utilise toujours le mode clair pour un design professionnel */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff; /* Force le fond blanc même en dark mode */
+    --foreground: #171717; /* Force le texte sombre même en dark mode */
   }
 }
 
+/* Styles globaux pour le body */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Styles par défaut pour les champs de formulaire */
+/* Assure une lisibilité parfaite avec texte sombre sur fond blanc */
+input,
+select,
+textarea {
+  /* Couleur de texte sombre pour une lisibilité optimale */
+  color: rgb(15 23 42); /* text-slate-900 */
+  /* Fond blanc pour contraster avec le texte */
+  background-color: rgb(255 255 255); /* bg-white */
+}
+
+/* Styles spécifiques pour les inputs de type text, email, password, etc. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"] {
+  color: rgb(15 23 42); /* text-slate-900 */
+  background-color: rgb(255 255 255); /* bg-white */
+}
+
+/* Styles pour les selects */
+select {
+  color: rgb(15 23 42); /* text-slate-900 */
+  background-color: rgb(255 255 255); /* bg-white */
+}
+
+/* Styles pour les textareas */
+textarea {
+  color: rgb(15 23 42); /* text-slate-900 */
+  background-color: rgb(255 255 255); /* bg-white */
+}
+
+/* Styles pour les placeholders (texte gris clair) */
+input::placeholder,
+textarea::placeholder {
+  color: rgb(148 163 184); /* text-slate-400 */
+  opacity: 1; /* Assure que l'opacité est à 100% */
 }

@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 // Composant de carte KPI (Key Performance Indicator)
 // Affiche une métrique importante avec un titre et une valeur
+// Peut être cliquable pour rediriger vers une page filtrée
 interface KPICardProps {
   title: string;
   value: string | number;
   icon?: ReactNode;
   variant?: 'default' | 'alert';
   description?: string;
+  href?: string; // URL optionnelle pour rendre la carte cliquable
 }
 
 export function KPICard({
@@ -16,9 +19,11 @@ export function KPICard({
   icon,
   variant = 'default',
   description,
+  href,
 }: KPICardProps) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+  // Contenu de la carte (réutilisable pour le lien ou la div)
+  const cardContent = (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
@@ -34,12 +39,34 @@ export function KPICard({
           )}
         </div>
         {icon && (
-          <div className="ml-4 p-3 bg-blue-50 rounded-lg text-blue-600">
+          <div
+            className={`ml-4 p-3 rounded-lg ${
+              variant === 'alert'
+                ? 'bg-red-50 text-red-600'
+                : 'bg-blue-50 text-blue-600'
+            }`}
+          >
             {icon}
           </div>
         )}
       </div>
     </div>
   );
+
+  // Si un href est fourni, la carte est cliquable
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block cursor-pointer"
+        aria-label={`Voir les détails de ${title}`}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  // Sinon, affichage normal sans lien
+  return cardContent;
 }
 

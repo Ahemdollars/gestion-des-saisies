@@ -4,14 +4,21 @@ import { prisma } from '@/lib/prisma';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AlerteBadge } from '@/components/ui/alerte-badge';
 import { DelaiCounterCompact } from '@/components/ui/delai-counter-compact';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { calculateDaysSinceSaisie } from '@/lib/utils/saisie.utils';
 
 // Page liste des saisies
 // Route : /dashboard/saisies
 // Affiche toutes les saisies dans un tableau épuré avec design "Pâtés App"
-export default async function SaisiesPage() {
+// Supporte un filtre pour les véhicules en vente aux enchères (délai > 90 jours)
+export default async function SaisiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtre?: string }>;
+}) {
   const session = await auth();
+  const params = await searchParams;
 
   // Vérification de sécurité : redirection si non connecté
   if (!session) {
@@ -20,7 +27,7 @@ export default async function SaisiesPage() {
 
   // Récupération de toutes les saisies avec les informations de l'agent
   // Triées par date décroissante (plus récentes en premier)
-  const saisies = await prisma.saisie.findMany({
+  const toutesSaisies = await prisma.saisie.findMany({
     orderBy: {
       dateSaisie: 'desc',
     },
@@ -34,6 +41,15 @@ export default async function SaisiesPage() {
     },
   });
 
+  // Filtrage selon le paramètre de filtre
+  // Si filtre = "vente-encheres", on ne garde que les véhicules avec délai > 90 jours
+  let saisies = toutesSaisies;
+  if (params.filtre === 'vente-encheres') {
+    saisies = toutesSaisies.filter(
+      (saisie) => calculateDaysSinceSaisie(saisie.dateSaisie) >= 90
+    );
+  }
+
   return (
     // Fond de page gris très clair style "Pâtés App"
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">
@@ -43,10 +59,23 @@ export default async function SaisiesPage() {
           <div>
             {/* Typographie élégante avec Inter/Geist (déjà configuré dans layout) */}
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
-              Saisies
+              {params.filtre === 'vente-encheres' ? (
+                <>
+                  Véhicules en Vente aux Enchères
+                  <span className="ml-3 inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-lg">
+                    <AlertTriangle className="h-4 w-4" />
+                    {/* Correction : utilisation de {">"} pour éviter l'erreur de parsing JSX */}
+                    Délai dépassé ({'>'}90j)
+                  </span>
+                </>
+              ) : (
+                'Saisies'
+              )}
             </h1>
             <p className="text-slate-600 mt-2 text-sm">
-              Liste épurée des véhicules saisis
+              {params.filtre === 'vente-encheres'
+                ? 'Véhicules éligibles à la vente aux enchères (Article 296)'
+                : 'Liste épurée des véhicules saisis'}
             </p>
           </div>
           {/* Bouton "Nouvelle Saisie" avec icône '+' */}
