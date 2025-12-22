@@ -1,9 +1,11 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { Role } from '@prisma/client';
 import { TrendingUp, Users, AlertTriangle, Inbox } from 'lucide-react';
 import { ExportButton } from '@/components/rapports/export-button';
 import { YearSelector } from '@/components/rapports/year-selector';
+import { canAccessRoute } from '@/lib/utils/permissions';
 
 // Page de rapports et statistiques
 // Affiche les statistiques professionnelles avec design "Clean UI"
@@ -16,9 +18,16 @@ export default async function RapportsPage({
   const session = await auth();
   const params = await searchParams;
 
-  // Vérification de sécurité
+  // Vérification de sécurité : redirection si non connecté
   if (!session) {
     redirect('/login');
+  }
+
+  // Contrôle d'accès RBAC : vérification des permissions pour cette route
+  const userRole = session.user.role as Role;
+  if (!canAccessRoute(userRole, '/dashboard/rapports')) {
+    // Redirection vers le dashboard avec message d'erreur si accès refusé
+    redirect('/dashboard?error=access_denied');
   }
 
   // Récupération de toutes les années distinctes présentes dans la table Saisie

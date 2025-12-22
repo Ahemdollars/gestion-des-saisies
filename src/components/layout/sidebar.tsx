@@ -11,14 +11,23 @@ import {
   LogOut,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
+import { Role } from '@prisma/client';
+import { getAuthorizedRoutes } from '@/lib/utils/permissions';
+
+// Props du composant Sidebar
+interface SidebarProps {
+  // Rôle de l'utilisateur connecté (passé depuis le layout serveur)
+  userRole: Role;
+}
 
 // Composant Sidebar
-// Navigation latérale fixe avec liens de menu et indication du lien actif
-export function Sidebar() {
+// Navigation latérale fixe avec liens de menu filtrés selon les permissions RBAC
+// Affiche uniquement les liens autorisés pour le rôle de l'utilisateur
+export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
 
-  // Configuration des liens de navigation
-  const navItems = [
+  // Configuration complète de tous les liens de navigation possibles
+  const allNavItems = [
     {
       href: '/dashboard',
       label: 'Tableau de bord',
@@ -45,6 +54,15 @@ export function Sidebar() {
       icon: Activity,
     },
   ];
+
+  // Récupération des routes autorisées pour ce rôle
+  // Filtre les liens de navigation selon les permissions RBAC
+  const authorizedRoutes = getAuthorizedRoutes(userRole);
+  
+  // Filtrage des liens de navigation : on garde uniquement ceux autorisés
+  const navItems = allNavItems.filter((item) =>
+    authorizedRoutes.some((route) => item.href.startsWith(route))
+  );
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/login' });

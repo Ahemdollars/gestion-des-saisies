@@ -29,12 +29,16 @@ interface SaisiesListClientProps {
   // Liste initiale de toutes les saisies (depuis le serveur)
   // Cette référence est stable car elle vient d'un Server Component
   initialSaisies: SaisieData[];
+  // Indique si l'utilisateur peut créer de nouvelles saisies (RBAC)
+  // Par défaut true pour la compatibilité avec les anciennes utilisations
+  canCreate?: boolean;
 }
 
 // Composant client pour afficher la liste des saisies avec recherche et filtres
 // Gère le filtrage côté client pour une recherche instantanée
 // Optimisé avec useMemo pour éviter les re-rendus inutiles et les boucles infinies
-export function SaisiesListClient({ initialSaisies }: SaisiesListClientProps) {
+// Protection RBAC : cache le bouton "Créer" si l'utilisateur n'a pas les permissions
+export function SaisiesListClient({ initialSaisies, canCreate = true }: SaisiesListClientProps) {
   const searchParams = useSearchParams();
   
   // Initialisation du statut depuis l'URL si présent
@@ -116,16 +120,19 @@ export function SaisiesListClient({ initialSaisies }: SaisiesListClientProps) {
       {/* Carte blanche avec tableau des saisies filtrées */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         {filteredSaisies.length === 0 ? (
-          // État vide : message centré avec bouton d'action
+          // État vide : message centré avec bouton d'action (si autorisé)
           <div className="p-12 text-center">
             <p className="text-slate-600 mb-4">Aucune saisie trouvée</p>
-            <Link
-              href="/dashboard/saisies/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-blue-700 hover:shadow-md transition-all duration-200"
-            >
-              <Plus className="h-4 w-4" />
-              Créer une nouvelle saisie
-            </Link>
+            {/* Bouton "Créer" visible uniquement si l'utilisateur peut créer des saisies */}
+            {canCreate && (
+              <Link
+                href="/dashboard/saisies/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-blue-700 hover:shadow-md transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                Créer une nouvelle saisie
+              </Link>
+            )}
           </div>
         ) : (
           <>

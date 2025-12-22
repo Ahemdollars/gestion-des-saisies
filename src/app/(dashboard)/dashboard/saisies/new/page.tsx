@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createSaisieSchema, type CreateSaisieInput } from '@/lib/validations/saisie.schema';
@@ -9,14 +9,45 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Role } from '@prisma/client';
+import { canCreateSaisie } from '@/lib/utils/permissions';
 
 // Page de création d'une nouvelle saisie
 // Route : /dashboard/saisies/new
-// Formulaire avec validation côté client et serveur, design "Pâtés App"
+// Formulaire avec validation côté client et serveur, design "Premium"
+// Protection RBAC : AGENT_CONSULTATION ne peut pas créer de saisies
 export default function NewSaisiePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
+  // Vérification des permissions au chargement de la page
+  useEffect(() => {
+    if (status === 'loading') {
+      return; // Attendre que la session soit chargée
+    }
+
+    if (!session) {
+      // Redirection vers login si non connecté
+      router.replace('/login');
+      return;
+    }
+
+    const userRole = session.user?.role as Role;
+    
+    // Vérification si l'utilisateur peut créer des saisies
+    // AGENT_CONSULTATION ne peut pas créer de saisies (lecture seule)
+    if (!canCreateSaisie(userRole)) {
+      // Redirection vers la liste des saisies avec message d'erreur
+      router.replace('/dashboard/saisies?error=access_denied');
+      return;
+    }
+
+    setIsCheckingAccess(false);
+  }, [session, status, router]);
 
   // Configuration de react-hook-form avec Zod pour la validation côté client
   const {
@@ -78,8 +109,20 @@ export default function NewSaisiePage() {
     }
   };
 
+  // Affichage du chargement pendant la vérification des permissions
+  if (isCheckingAccess || status === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-slate-600">Vérification des permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    // Fond de page gris très clair style "Pâtés App"
+    // Fond de page gris très clair style "Premium"
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* En-tête avec typographie élégante */}

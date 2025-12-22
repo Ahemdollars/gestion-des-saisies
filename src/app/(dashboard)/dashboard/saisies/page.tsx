@@ -1,10 +1,12 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { Role } from '@prisma/client';
 import { Plus, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { calculateDaysSinceSaisie } from '@/lib/utils/saisie.utils';
 import { SaisiesListClient } from '@/components/saisie/saisies-list-client';
+import { canCreateSaisie } from '@/lib/utils/permissions';
 
 // Page liste des saisies
 // Route : /dashboard/saisies
@@ -23,6 +25,13 @@ export default async function SaisiesPage({
   if (!session) {
     redirect('/login');
   }
+
+  // Récupération du rôle de l'utilisateur pour le contrôle d'accès RBAC
+  const userRole = session.user.role as Role;
+  
+  // Vérification si l'utilisateur peut créer des saisies
+  // AGENT_CONSULTATION ne peut pas créer de saisies (lecture seule)
+  const canCreate = canCreateSaisie(userRole);
 
   // Récupération de toutes les saisies avec les informations de l'agent
   // Triées par date décroissante (plus récentes en premier)
@@ -93,19 +102,23 @@ export default async function SaisiesPage({
             </p>
           </div>
           {/* Bouton "Nouvelle Saisie" avec icône '+' */}
-          <Link
-            href="/dashboard/saisies/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Nouvelle Saisie
-          </Link>
+          {/* Visible uniquement si l'utilisateur peut créer des saisies (pas AGENT_CONSULTATION) */}
+          {canCreate && (
+            <Link
+              href="/dashboard/saisies/new"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Nouvelle Saisie
+            </Link>
+          )}
         </div>
 
         {/* Composant client pour la liste avec recherche et filtres */}
         {/* Gère le filtrage côté client pour une recherche instantanée */}
         {/* Les données sont passées avec une référence stable pour éviter les boucles infinies */}
-        <SaisiesListClient initialSaisies={saisiesFormatees} />
+        {/* Passe la permission canCreate pour cacher le bouton "Créer" si nécessaire */}
+        <SaisiesListClient initialSaisies={saisiesFormatees} canCreate={canCreate} />
       </div>
     </div>
   );

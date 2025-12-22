@@ -3,9 +3,12 @@ import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { Role } from '@prisma/client';
+import { canAccessRoute } from '@/lib/utils/permissions';
 
 // Layout du dashboard
 // Structure responsive avec sidebar sur desktop et navigation mobile sur mobile
+// Protection RBAC : vérifie les permissions avant d'afficher les composants
 // Toutes les pages du dashboard héritent de ce layout
 export default async function DashboardLayout({
   children,
@@ -19,13 +22,18 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // Récupération du rôle de l'utilisateur pour le contrôle d'accès RBAC
+  const userRole = session.user.role as Role;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation mobile (visible uniquement sur mobile) */}
-      <MobileNav />
+      {/* Passe le rôle de l'utilisateur pour filtrer les liens selon les permissions */}
+      <MobileNav userRole={userRole} />
 
       {/* Sidebar fixe à gauche (visible uniquement sur desktop) */}
-      <Sidebar />
+      {/* Passe le rôle de l'utilisateur pour filtrer les liens selon les permissions */}
+      <Sidebar userRole={userRole} />
 
       {/* Contenu principal avec marge pour la sidebar sur desktop */}
       {/* Sur mobile, le contenu prend toute la largeur */}

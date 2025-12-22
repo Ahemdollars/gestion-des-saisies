@@ -13,16 +13,25 @@ import {
   X,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
+import { Role } from '@prisma/client';
+import { getAuthorizedRoutes } from '@/lib/utils/permissions';
+
+// Props du composant MobileNav
+interface MobileNavProps {
+  // Rôle de l'utilisateur connecté (passé depuis le layout serveur)
+  userRole: Role;
+}
 
 // Composant de navigation mobile
 // Affiche un menu burger en haut et une barre de navigation en bas sur mobile
 // Remplace la Sidebar fixe sur les écrans < 768px
-export function MobileNav() {
+// Filtre les liens selon les permissions RBAC
+export function MobileNav({ userRole }: MobileNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Configuration des liens de navigation (identique à la Sidebar)
-  const navItems = [
+  // Configuration complète de tous les liens de navigation possibles
+  const allNavItems = [
     {
       href: '/dashboard',
       label: 'Tableau de bord',
@@ -49,6 +58,14 @@ export function MobileNav() {
       icon: Activity,
     },
   ];
+
+  // Récupération des routes autorisées pour ce rôle
+  const authorizedRoutes = getAuthorizedRoutes(userRole);
+  
+  // Filtrage des liens de navigation : on garde uniquement ceux autorisés
+  const navItems = allNavItems.filter((item) =>
+    authorizedRoutes.some((route) => item.href.startsWith(route))
+  );
 
   // Fonction pour fermer le menu après navigation
   const handleLinkClick = () => {
@@ -146,18 +163,20 @@ export function MobileNav() {
             <span className="text-xs font-medium">Saisies</span>
           </Link>
 
-          {/* Rapports */}
-          <Link
-            href="/dashboard/rapports"
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              pathname === '/dashboard/rapports'
-                ? 'text-blue-600'
-                : 'text-gray-600 hover:text-blue-600'
-            }`}
-          >
-            <BarChart3 className="h-5 w-5" />
-            <span className="text-xs font-medium">Rapports</span>
-          </Link>
+          {/* Rapports (visible uniquement si autorisé) */}
+          {authorizedRoutes.includes('/dashboard/rapports') && (
+            <Link
+              href="/dashboard/rapports"
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/dashboard/rapports'
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <BarChart3 className="h-5 w-5" />
+              <span className="text-xs font-medium">Rapports</span>
+            </Link>
+          )}
 
           {/* Menu (ouvre le menu burger) */}
           <button
