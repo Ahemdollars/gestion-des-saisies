@@ -115,11 +115,30 @@ export async function generateNotificationPDF(saisie: SaisieNotificationData): P
     doc.text('GUICHET UNIQUE - GESTION DES SAISIES', pageWidth / 2, currentY, { align: 'center' });
     currentY += 5;
 
-    // Titre du volet (PROPRIÉTAIRE, VÉHICULE, SOUCHE GUICHET)
+    // Titre du volet avec description selon le cahier des charges
+    // Format : "VOLET X : NOM (Description de l'usage)"
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(title, pageWidth / 2, currentY, { align: 'center' });
-    currentY += 8;
+    currentY += 5;
+    
+    // Description de l'usage du volet (en italique, plus petit)
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(80, 80, 80); // Gris foncé pour la description
+    let description = '';
+    if (title.includes('PROPRIÉTAIRE')) {
+      description = '(Copie enregistrée remise à la personne à bord)';
+    } else if (title.includes('VÉHICULE')) {
+      description = '(Copie qui reste dans le véhicule jusqu\'à la sortie)';
+    } else if (title.includes('SOUCHE GUICHET')) {
+      description = '(Document de référence pour les PV et archives)';
+    }
+    if (description) {
+      doc.text(description, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 5;
+    }
+    doc.setTextColor(0, 0, 0); // Retour au noir
 
     // Ligne de séparation
     doc.setDrawColor(0, 0, 0);
@@ -238,15 +257,22 @@ export async function generateNotificationPDF(saisie: SaisieNotificationData): P
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
+    
+    // CONFORMITÉ CAHIER DES CHARGES : Mention explicite de l'Art. 296
+    // "Conformément à l'Art. 296 du Code des Douanes (Délai de 90 jours)"
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(60, 60, 60); // Gris foncé pour la mention principale
+    doc.text('Conformément à l\'Art. 296 du Code des Douanes (Délai de 90 jours)', margin, currentY);
+    currentY += 5;
+    
     // CONFORMITÉ : Les articles 429 et 432 sont TOUJOURS affichés sur le document
     // Conformément au cahier des charges des Douanes du Mali
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100); // Gris pour les autres articles
     const articlesLegaux: string[] = [
       'Art. 429 - Contrebande',
       'Art. 432 - Importation sans déclaration',
     ];
-    
-    // Ajout de l'article 296 (toujours présent pour le délai de dépôt)
-    articlesLegaux.push('Art. 296 - Délai de dépôt (90 jours)');
     
     // Ajout de l'article 440 si le motif concerne le dépassement de délai
     if (saisie.motifInfraction.includes('440') || saisie.motifInfraction.includes('Dépassement')) {
@@ -262,20 +288,26 @@ export async function generateNotificationPDF(saisie: SaisieNotificationData): P
     currentY += 3;
     doc.setTextColor(0, 0, 0); // Retour au noir pour le QR Code
 
-    // QR Code pour vérification rapide
-    // Positionné en bas à droite de chaque volet
-    const qrSize = 20; // Taille du QR Code en mm
+    // QR Code de sécurité pour vérification instantanée de l'authenticité
+    // CONFORMITÉ CAHIER DES CHARGES : QR Code présent sur chaque volet
+    // Permet de vérifier instantanément l'authenticité de la saisie en scannant le document
+    const qrSize = 22; // Taille du QR Code en mm (légèrement agrandi pour meilleure lisibilité)
     const qrX = pageWidth - margin - qrSize - 5; // Position X (à droite avec marge)
     const qrY = currentY; // Position Y (après les informations)
     
     // Ajout du QR Code au PDF
     doc.addImage(qrCodeImage, 'PNG', qrX, qrY, qrSize, qrSize);
     
-    // Label sous le QR Code
-    doc.setFont('helvetica', 'normal');
+    // Label sous le QR Code avec mention de sécurité
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0); // Noir pour le label
     doc.text('QR Code', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
-    doc.text('Vérification', qrX + qrSize / 2, qrY + qrSize + 5.5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(60, 60, 60); // Gris foncé pour la description
+    doc.text('Vérification', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
+    doc.text('authenticité', qrX + qrSize / 2, qrY + qrSize + 7, { align: 'center' });
 
     currentY += qrSize + 8;
 
@@ -295,19 +327,23 @@ export async function generateNotificationPDF(saisie: SaisieNotificationData): P
   };
 
   // Génération des 3 volets selon la procédure officielle des Douanes du Mali
-  // Conformité document source : 3 documents identiques sur une page A4
+  // CONFORMITÉ CAHIER DES CHARGES : 3 documents identiques sur une page A4
+  // Format fidèle au carnet de notification officiel
   let startY = margin + 10;
   
-  // Volet 1 : PROPRIÉTAIRE (Document 1) - À remettre au conducteur
+  // Volet 1 : PROPRIÉTAIRE (Document 1)
+  // CONFORMITÉ : Copie enregistrée remise à la personne à bord
   startY = generateVolet(startY, 'VOLET PROPRIÉTAIRE (Document 1)', qrCodeImage, false);
   startY += 5;
 
-  // Volet 2 : VÉHICULE (Document 2) - À laisser sur le tableau de bord
+  // Volet 2 : VÉHICULE (Document 2)
+  // CONFORMITÉ : Copie qui reste dans le véhicule jusqu'à la sortie
   startY = generateVolet(startY, 'VOLET VÉHICULE (Document 2)', qrCodeImage, false);
   startY += 5;
 
-  // Volet 3 : SOUCHE GUICHET (Document 3) - Document de référence pour le PV
-  generateVolet(startY, 'SOUCHE GUICHET (Document 3)', qrCodeImage, true);
+  // Volet 3 : SOUCHE GUICHET (Document 3)
+  // CONFORMITÉ : Document de référence pour les PV et archives
+  generateVolet(startY, 'VOLET SOUCHE GUICHET (Document 3)', qrCodeImage, true);
 
   // Téléchargement automatique du PDF
   const fileName = `Notification_Saisie_${saisie.numeroChassis}_${new Date().toISOString().split('T')[0]}.pdf`;

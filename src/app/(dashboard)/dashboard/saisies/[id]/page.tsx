@@ -112,13 +112,18 @@ export default async function SaisieDetailPage({
         {/* Section : Actions disponibles */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Bouton d'impression de la notification */}
+            {/* Bouton d'impression de la notification officielle */}
+            {/* CONFORMITÉ CAHIER DES CHARGES : Génération automatique de la Fiche de Notification */}
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-slate-800 mb-1">
-                Notification Officielle
+                Fiche de Notification Officielle
               </h2>
               <p className="text-sm text-slate-600">
-                Générer la notification "3 volets" (Propriétaire, Véhicule, Souche Guichet)
+                Générer automatiquement la notification "3 volets" conforme au carnet officiel :
+                <br />
+                <span className="text-xs text-slate-500 mt-1 block">
+                  • Volet Propriétaire (remis à la personne à bord) • Volet Véhicule (reste dans le véhicule) • Souche Guichet (archives)
+                </span>
               </p>
             </div>
             <div className="flex items-center gap-3">
