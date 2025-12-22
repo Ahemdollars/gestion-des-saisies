@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, X } from 'lucide-react';
 import { StatutSaisie } from '@prisma/client';
@@ -8,6 +8,7 @@ import { StatutSaisie } from '@prisma/client';
 // Interface pour les props du composant de recherche et filtres
 interface SearchFiltersProps {
   // Liste de toutes les saisies à filtrer (pour la recherche côté client)
+  // Cette référence est stable grâce à useMemo dans le parent
   saisies: Array<{
     id: string;
     numeroChassis: string;
@@ -15,14 +16,13 @@ interface SearchFiltersProps {
     nomConducteur: string;
     statut: StatutSaisie;
   }>;
-  // Fonction de callback pour retourner les saisies filtrées
-  onFilterChange: (filteredSaisies: Array<{
-    id: string;
-    numeroChassis: string;
-    marque: string;
-    nomConducteur: string;
-    statut: StatutSaisie;
-  }>) => void;
+  // Valeur actuelle de la recherche textuelle (contrôlée par le parent)
+  searchQuery: string;
+  // Statut sélectionné actuel (contrôlé par le parent)
+  selectedStatut: StatutSaisie | 'TOUS';
+  // Fonction de callback stable pour mettre à jour la recherche et le statut
+  // Utilise useCallback dans le parent pour éviter les re-créations
+  onSearchChange: (query: string, statut: StatutSaisie | 'TOUS') => void;
 }
 
 // Composant client pour la recherche et les filtres
@@ -31,18 +31,15 @@ interface SearchFiltersProps {
 // - Nom du conducteur
 // - Marque du véhicule
 // - Statut (dropdown)
-export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
+// Optimisé pour éviter les boucles infinies en utilisant des props contrôlées
+export function SearchFilters({ 
+  saisies, 
+  searchQuery, 
+  selectedStatut, 
+  onSearchChange 
+}: SearchFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // État local pour la recherche textuelle (châssis, conducteur, marque)
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // État local pour le filtre par statut
-  // Récupère le statut depuis les searchParams s'il existe
-  const [selectedStatut, setSelectedStatut] = useState<StatutSaisie | 'TOUS'>(
-    (searchParams.get('statut') as StatutSaisie) || 'TOUS'
-  );
 
   // Fonction pour obtenir le label lisible d'un statut
   const getStatutLabel = (statut: StatutSaisie | 'TOUS'): string => {
@@ -69,24 +66,18 @@ export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
     'VENTE_ENCHERES',
   ];
 
-  // Filtrage en temps réel des saisies selon la recherche et le statut
-  // Utilise useMemo pour optimiser les performances (recalcul uniquement si saisies, searchQuery ou selectedStatut changent)
-  const filteredSaisies = useMemo(() => {
+  // Calcul du nombre de résultats filtrés pour l'affichage
+  // Utilise une fonction locale pour éviter les dépendances dans useMemo
+  const getFilteredCount = () => {
     let result = [...saisies];
 
     // Filtre par recherche textuelle (insensible à la casse)
-    // Recherche dans : numéro de châssis, nom du conducteur, marque
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter((saisie) => {
-        // Recherche dans le numéro de châssis
         const chassisMatch = saisie.numeroChassis.toLowerCase().includes(query);
-        // Recherche dans le nom du conducteur
         const conducteurMatch = saisie.nomConducteur.toLowerCase().includes(query);
-        // Recherche dans la marque
         const marqueMatch = saisie.marque.toLowerCase().includes(query);
-        
-        // Retourne true si au moins un champ correspond
         return chassisMatch || conducteurMatch || marqueMatch;
       });
     }
@@ -96,8 +87,10 @@ export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
       result = result.filter((saisie) => saisie.statut === selectedStatut);
     }
 
-    return result;
-  }, [saisies, searchQuery, selectedStatut]);
+    return result.length;
+  };
+
+  const filteredCount = getFilteredCount();
 
   // Mise à jour de l'URL avec le paramètre statut quand il change
   // Permet de partager l'URL filtrée et de conserver le filtre au rafraîchissement
@@ -116,17 +109,20 @@ export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
     router.replace(`/dashboard/saisies?${params.toString()}`, { scroll: false });
   }, [selectedStatut, router, searchParams]);
 
-  // Notification du parent quand les saisies filtrées changent
-  // Permet au composant parent de mettre à jour l'affichage
-  useEffect(() => {
-    onFilterChange(filteredSaisies);
-  }, [filteredSaisies, onFilterChange]);
-
   // Fonction pour réinitialiser tous les filtres
   const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedStatut('TOUS');
+    onSearchChange('', 'TOUS');
     router.replace('/dashboard/saisies', { scroll: false });
+  };
+
+  // Gestion du changement de recherche textuelle
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onSearchChange(e.target.value, selectedStatut);
+  };
+
+  // Gestion du changement de statut
+  const handleStatutChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onSearchChange(searchQuery, e.target.value as StatutSaisie | 'TOUS');
   };
 
   return (
@@ -169,15 +165,15 @@ export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
               id="search-input"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="Châssis, conducteur ou marque..."
               className="w-full pl-10 pr-4 py-2.5 text-slate-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
           {/* Indicateur du nombre de résultats trouvés */}
-          {searchQuery && (
+          {(searchQuery || selectedStatut !== 'TOUS') && (
             <p className="mt-1.5 text-xs text-slate-500">
-              {filteredSaisies.length} résultat{filteredSaisies.length > 1 ? 's' : ''} trouvé{filteredSaisies.length > 1 ? 's' : ''}
+              {filteredCount} résultat{filteredCount > 1 ? 's' : ''} trouvé{filteredCount > 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -195,7 +191,7 @@ export function SearchFilters({ saisies, onFilterChange }: SearchFiltersProps) {
           <select
             id="statut-filter"
             value={selectedStatut}
-            onChange={(e) => setSelectedStatut(e.target.value as StatutSaisie | 'TOUS')}
+            onChange={handleStatutChange}
             className="w-full px-4 py-2.5 text-slate-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
           >
             {statutsList.map((statut) => (

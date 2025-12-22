@@ -7,6 +7,7 @@ import {
   FileText,
   BarChart3,
   Users,
+  Activity,
   LogOut,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
@@ -37,6 +38,11 @@ export function Sidebar() {
       href: '/dashboard/utilisateurs',
       label: 'Utilisateurs',
       icon: Users,
+    },
+    {
+      href: '/dashboard/audit',
+      label: 'Journal d\'Audit',
+      icon: Activity,
     },
   ];
 

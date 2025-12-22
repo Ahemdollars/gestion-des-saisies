@@ -49,6 +49,21 @@ export default async function SaisiesPage({
     );
   }
 
+  // Transformation des données en format stable pour éviter les références instables
+  // Cette transformation est faite une seule fois côté serveur avant le rendu
+  // Cela évite les re-créations de références à chaque rendu qui causent des boucles infinies
+  const saisiesFormatees = saisies.map((saisie) => ({
+    id: saisie.id,
+    numeroChassis: saisie.numeroChassis,
+    marque: saisie.marque,
+    modele: saisie.modele,
+    immatriculation: saisie.immatriculation,
+    nomConducteur: saisie.nomConducteur,
+    telephoneConducteur: saisie.telephoneConducteur,
+    dateSaisie: saisie.dateSaisie,
+    statut: saisie.statut,
+  }));
+
   return (
     // Fond de page gris très clair style "Premium"
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">
@@ -89,19 +104,8 @@ export default async function SaisiesPage({
 
         {/* Composant client pour la liste avec recherche et filtres */}
         {/* Gère le filtrage côté client pour une recherche instantanée */}
-        <SaisiesListClient
-          initialSaisies={saisies.map((saisie) => ({
-            id: saisie.id,
-            numeroChassis: saisie.numeroChassis,
-            marque: saisie.marque,
-            modele: saisie.modele,
-            immatriculation: saisie.immatriculation,
-            nomConducteur: saisie.nomConducteur,
-            telephoneConducteur: saisie.telephoneConducteur,
-            dateSaisie: saisie.dateSaisie,
-            statut: saisie.statut,
-          }))}
-        />
+        {/* Les données sont passées avec une référence stable pour éviter les boucles infinies */}
+        <SaisiesListClient initialSaisies={saisiesFormatees} />
       </div>
     </div>
   );

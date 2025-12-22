@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AlerteBadge } from '@/components/ui/alerte-badge';
 import { DelaiCounterCompact } from '@/components/ui/delai-counter-compact';
@@ -25,49 +26,90 @@ interface SaisieData {
 // Props du composant client pour la liste des saisies
 interface SaisiesListClientProps {
   // Liste initiale de toutes les saisies (depuis le serveur)
+  // Cette référence est stable car elle vient d'un Server Component
   initialSaisies: SaisieData[];
 }
 
 // Composant client pour afficher la liste des saisies avec recherche et filtres
 // Gère le filtrage côté client pour une recherche instantanée
+// Optimisé avec useMemo pour éviter les re-rendus inutiles et les boucles infinies
 export function SaisiesListClient({ initialSaisies }: SaisiesListClientProps) {
-  // État local pour les saisies filtrées
-  // Initialisé avec toutes les saisies au chargement
-  const [filteredSaisies, setFilteredSaisies] = useState<SaisieData[]>(initialSaisies);
+  const searchParams = useSearchParams();
+  
+  // Initialisation du statut depuis l'URL si présent
+  // Récupère le paramètre 'statut' depuis les searchParams au premier chargement
+  const statutFromUrl = searchParams.get('statut') as StatutSaisie | null;
+  
+  // État local pour la recherche textuelle (châssis, conducteur, marque)
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // État local pour le filtre par statut
+  // Initialisé avec le statut de l'URL s'il existe, sinon 'TOUS'
+  const [selectedStatut, setSelectedStatut] = useState<StatutSaisie | 'TOUS'>(
+    statutFromUrl || 'TOUS'
+  );
 
-  // Fonction de callback appelée par SearchFilters quand les filtres changent
-  // Met à jour l'état local avec les saisies filtrées
-  const handleFilterChange = (filtered: Array<{
-    id: string;
-    numeroChassis: string;
-    marque: string;
-    nomConducteur: string;
-    statut: StatutSaisie;
-  }>) => {
-    // Crée un Set des IDs filtrés pour une recherche rapide
-    const filteredIds = new Set(filtered.map((s) => s.id));
-    
-    // Filtre les saisies complètes en gardant seulement celles qui sont dans le Set
-    const fullFilteredSaisies = initialSaisies.filter((saisie) =>
-      filteredIds.has(saisie.id)
-    );
-    
-    // Met à jour l'état avec les saisies filtrées complètes
-    setFilteredSaisies(fullFilteredSaisies);
-  };
+  // Transformation stable des données pour SearchFilters
+  // Utilise useMemo pour créer une référence stable qui ne change que si initialSaisies change
+  // Cela évite les re-créations à chaque rendu qui causent des boucles infinies
+  const saisiesForSearch = useMemo(() => {
+    return initialSaisies.map((s) => ({
+      id: s.id,
+      numeroChassis: s.numeroChassis,
+      marque: s.marque,
+      nomConducteur: s.nomConducteur,
+      statut: s.statut,
+    }));
+  }, [initialSaisies]);
+
+  // Filtrage optimisé avec useMemo
+  // Recalcule uniquement si initialSaisies, searchQuery ou selectedStatut changent
+  // Cela évite les re-rendus inutiles et les boucles infinies
+  const filteredSaisies = useMemo(() => {
+    let result = [...initialSaisies];
+
+    // Filtre par recherche textuelle (insensible à la casse)
+    // Recherche dans : numéro de châssis, nom du conducteur, marque
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((saisie) => {
+        // Recherche dans le numéro de châssis
+        const chassisMatch = saisie.numeroChassis.toLowerCase().includes(query);
+        // Recherche dans le nom du conducteur
+        const conducteurMatch = saisie.nomConducteur.toLowerCase().includes(query);
+        // Recherche dans la marque
+        const marqueMatch = saisie.marque.toLowerCase().includes(query);
+        
+        // Retourne true si au moins un champ correspond
+        return chassisMatch || conducteurMatch || marqueMatch;
+      });
+    }
+
+    // Filtre par statut sélectionné
+    if (selectedStatut !== 'TOUS') {
+      result = result.filter((saisie) => saisie.statut === selectedStatut);
+    }
+
+    return result;
+  }, [initialSaisies, searchQuery, selectedStatut]);
+
+  // Fonction de callback stable pour SearchFilters
+  // Utilise useCallback pour créer une référence stable qui ne change pas à chaque rendu
+  // Cela évite les re-rendus inutiles dans SearchFilters
+  const handleSearchChange = useCallback((query: string, statut: StatutSaisie | 'TOUS') => {
+    setSearchQuery(query);
+    setSelectedStatut(statut);
+  }, []);
 
   return (
     <div className="space-y-6">
       {/* Composant de recherche et filtres */}
+      {/* Passe les données avec une référence stable et un callback stable */}
       <SearchFilters
-        saisies={initialSaisies.map((s) => ({
-          id: s.id,
-          numeroChassis: s.numeroChassis,
-          marque: s.marque,
-          nomConducteur: s.nomConducteur,
-          statut: s.statut,
-        }))}
-        onFilterChange={handleFilterChange}
+        saisies={saisiesForSearch}
+        searchQuery={searchQuery}
+        selectedStatut={selectedStatut}
+        onSearchChange={handleSearchChange}
       />
 
       {/* Carte blanche avec tableau des saisies filtrées */}
