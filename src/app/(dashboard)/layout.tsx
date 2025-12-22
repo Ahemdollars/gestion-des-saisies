@@ -2,9 +2,10 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { MobileNav } from '@/components/layout/mobile-nav';
 
 // Layout du dashboard
-// Structure avec sidebar fixe à gauche et header en haut
+// Structure responsive avec sidebar sur desktop et navigation mobile sur mobile
 // Toutes les pages du dashboard héritent de ce layout
 export default async function DashboardLayout({
   children,
@@ -20,16 +21,26 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar fixe à gauche */}
+      {/* Navigation mobile (visible uniquement sur mobile) */}
+      <MobileNav />
+
+      {/* Sidebar fixe à gauche (visible uniquement sur desktop) */}
       <Sidebar />
 
-      {/* Contenu principal avec marge pour la sidebar */}
-      <div className="ml-64">
-        {/* Header fixe en haut */}
-        <Header />
+      {/* Contenu principal avec marge pour la sidebar sur desktop */}
+      {/* Sur mobile, le contenu prend toute la largeur */}
+      <div className="md:ml-64">
+        {/* Header fixe en haut (visible uniquement sur desktop) */}
+        <div className="hidden md:block">
+          <Header />
+        </div>
 
-        {/* Contenu de la page avec marge pour le header */}
-        <main className="pt-16 p-8">{children}</main>
+        {/* Contenu de la page */}
+        {/* Sur mobile : marge en haut pour le menu burger, marge en bas pour la nav basse */}
+        {/* Sur desktop : marge en haut pour le header */}
+        <main className="pt-16 md:pt-16 pb-20 md:pb-8 p-4 md:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

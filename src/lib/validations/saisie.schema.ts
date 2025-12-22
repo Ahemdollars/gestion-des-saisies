@@ -34,15 +34,49 @@ export const createSaisieSchema = z.object({
     .regex(/^[0-9+\-\s()]+$/, 'Format de téléphone invalide'),
 
   // Informations de la saisie
-  motifInfraction: z
-    .string()
-    .min(1, 'Le motif de l\'infraction est requis')
-    .max(500, 'Le motif est trop long'),
+  // Liste des infractions légales selon le Code des Douanes du Mali
+  motifInfraction: z.enum([
+    'Défaut de T1',
+    'Contrebande (Art. 429)',
+    'Importation sans déclaration (Art. 432)',
+    'Dépassement de délai (Art. 296/440)',
+    'Autre (préciser)',
+  ], {
+    errorMap: () => ({ message: 'Veuillez sélectionner un motif d\'infraction' }),
+  }),
+  // Détails supplémentaires si "Autre (préciser)" est sélectionné
+  // Ce champ est optionnel mais sera validé conditionnellement dans le formulaire
+  motifInfractionDetails: z.string().max(500, 'Les détails sont trop longs').optional(),
+}).refine(
+  // Validation conditionnelle : si "Autre (préciser)" est sélectionné, les détails sont requis
+  (data) => {
+    if (data.motifInfraction === 'Autre (préciser)') {
+      return data.motifInfractionDetails && data.motifInfractionDetails.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: 'Veuillez préciser les détails de l\'infraction',
+    path: ['motifInfractionDetails'], // Le message d'erreur sera associé au champ motifInfractionDetails
+  }
+);
   lieuSaisie: z
     .string()
     .min(1, 'Le lieu de saisie est requis')
     .max(200, 'Le lieu est trop long'),
-});
+}).refine(
+  // Validation conditionnelle : si "Autre (préciser)" est sélectionné, les détails sont requis
+  (data) => {
+    if (data.motifInfraction === 'Autre (préciser)') {
+      return data.motifInfractionDetails && data.motifInfractionDetails.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: 'Veuillez préciser les détails de l\'infraction',
+    path: ['motifInfractionDetails'], // Le message d'erreur sera associé au champ motifInfractionDetails
+  }
+);
 
 // Type TypeScript dérivé du schéma Zod
 export type CreateSaisieInput = z.infer<typeof createSaisieSchema>;

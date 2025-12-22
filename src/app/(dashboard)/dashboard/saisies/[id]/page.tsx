@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { DelaiCounter } from '@/components/ui/delai-counter';
 import { ActionButtons } from '@/components/saisie/action-buttons';
+import { PrintNotificationButton } from '@/components/saisie/print-notification-button';
 import { 
   Car, 
   User, 
@@ -13,8 +14,10 @@ import {
   Shield, 
   Clock,
   History,
-  AlertTriangle
+  AlertTriangle,
+  Edit
 } from 'lucide-react';
+import Link from 'next/link';
 import { calculateDaysRemaining, getAlerteLevel, getAlerteMessage } from '@/lib/utils/saisie.utils';
 import { Role } from '@prisma/client';
 
@@ -81,6 +84,14 @@ export default async function SaisieDetailPage({
     session.user.role === 'CHEF_BUREAU' || 
     session.user.role === 'CHEF_BRIGADE';
 
+  // Vérification si la saisie peut être modifiée
+  // Une saisie peut être modifiée si :
+  // 1. Son statut est SAISI_EN_COURS (non validée)
+  // 2. L'utilisateur est l'agent qui a créé la saisie OU un ADMIN
+  const canEdit = 
+    saisie.statut === 'SAISI_EN_COURS' && 
+    (saisie.agentId === session.user.id || session.user.role === 'ADMIN');
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -97,6 +108,52 @@ export default async function SaisieDetailPage({
         {/* Section : Compteur de Délai Légal (Art. 296) */}
         {/* Affiche le nombre de jours restants avec règles visuelles */}
         <DelaiCounter dateSaisie={saisie.dateSaisie} />
+
+        {/* Section : Actions disponibles */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Bouton d'impression de la notification */}
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-slate-800 mb-1">
+                Notification Officielle
+              </h2>
+              <p className="text-sm text-slate-600">
+                Générer la notification "3 volets" (Propriétaire, Véhicule, Souche Guichet)
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Bouton Modifier (visible uniquement si la saisie peut être modifiée) */}
+              {canEdit && (
+                <Link
+                  href={`/dashboard/saisies/${id}/edit`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all duration-200"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Modifier</span>
+                </Link>
+              )}
+              {/* Bouton d'impression */}
+              <PrintNotificationButton
+                saisie={{
+                  numeroChassis: saisie.numeroChassis,
+                  marque: saisie.marque,
+                  modele: saisie.modele,
+                  typeVehicule: saisie.typeVehicule,
+                  immatriculation: saisie.immatriculation,
+                  nomConducteur: saisie.nomConducteur,
+                  telephoneConducteur: saisie.telephoneConducteur,
+                  motifInfraction: saisie.motifInfraction,
+                  lieuSaisie: saisie.lieuSaisie,
+                  dateSaisie: saisie.dateSaisie,
+                  agent: {
+                    prenom: saisie.agent.prenom,
+                    nom: saisie.agent.nom,
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Section : Actions de Direction */}
         {/* Boutons de validation/annulation visibles uniquement pour ADMIN, CHEF_BUREAU et CHEF_BRIGADE */}

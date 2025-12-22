@@ -51,7 +51,10 @@ export function Sidebar() {
   };
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-slate-900 flex flex-col">
+    <>
+      {/* Sidebar visible uniquement sur desktop (md et plus) */}
+      {/* Sur mobile, elle est remplacée par MobileNav */}
+      <div className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-slate-900 flex-col">
       {/* Logo / En-tête */}
       <div className="p-6 border-b border-slate-800">
         <h1 className="text-xl font-bold text-white">DOUANES MALI</h1>
@@ -94,6 +97,7 @@ export function Sidebar() {
         </button>
       </div>
     </div>
+    </>
   );
 }
 

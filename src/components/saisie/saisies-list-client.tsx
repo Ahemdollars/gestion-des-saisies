@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { StatutSaisie } from '@prisma/client';
 import { SearchFilters } from './search-filters';
+import { SaisieCardMobile } from './saisie-card-mobile';
 
 // Interface pour les données d'une saisie
 interface SaisieData {
@@ -127,9 +128,17 @@ export function SaisiesListClient({ initialSaisies }: SaisiesListClientProps) {
             </Link>
           </div>
         ) : (
-          // Tableau épuré des saisies filtrées
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Vue en cartes sur mobile (visible uniquement sur mobile) */}
+            <div className="md:hidden space-y-4 p-4">
+              {filteredSaisies.map((saisie) => (
+                <SaisieCardMobile key={saisie.id} saisie={saisie} />
+              ))}
+            </div>
+
+            {/* Tableau épuré des saisies filtrées (visible uniquement sur desktop) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
               {/* En-têtes du tableau avec fond gris très clair */}
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
@@ -236,6 +245,7 @@ export function SaisiesListClient({ initialSaisies }: SaisiesListClientProps) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

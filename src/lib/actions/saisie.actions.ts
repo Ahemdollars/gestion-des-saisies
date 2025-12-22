@@ -84,7 +84,10 @@ export async function createSaisie(
         telephoneConducteur: validatedData.telephoneConducteur,
         
         // Informations de l'infraction (validées par Zod)
-        motifInfraction: validatedData.motifInfraction,
+        // Si "Autre (préciser)" est sélectionné, on combine avec les détails
+        motifInfraction: validatedData.motifInfraction === 'Autre (préciser)' && validatedData.motifInfractionDetails
+          ? `${validatedData.motifInfraction}: ${validatedData.motifInfractionDetails}`
+          : validatedData.motifInfraction,
         lieuSaisie: validatedData.lieuSaisie,
         
         // Données automatiques
@@ -138,5 +141,134 @@ export async function createSaisie(
   // pour que Next.js puisse l'intercepter correctement et éviter l'erreur NEXT_REDIRECT
   // Si on arrive ici, c'est que toutes les étapes précédentes ont réussi
   redirect('/dashboard/saisies');
+}
+
+/**
+ * Server Action pour mettre à jour une saisie existante
+ * 
+ * Cette fonction :
+ * 1. Vérifie l'authentification de l'utilisateur
+ * 2. Vérifie que la saisie existe et peut être modifiée (statut SAISI_EN_COURS)
+ * 3. Valide les données avec Zod
+ * 4. Met à jour la saisie dans la base de données
+ * 5. Crée une entrée dans AuditLog pour la traçabilité
+ * 
+ * @param saisieId - ID de la saisie à modifier
+ * @param data - Nouvelles données du formulaire
+ * @returns ActionResult avec success: true ou false et un message d'erreur éventuel
+ */
+export async function updateSaisie(
+  saisieId: string,
+  data: CreateSaisieInput
+): Promise<ActionResult> {
+  try {
+    // ÉTAPE 1 : Vérification de l'authentification
+    const session = await auth();
+    
+    if (!session || !session.user?.id) {
+      return {
+        success: false,
+        error: 'Vous devez être connecté pour modifier une saisie',
+      };
+    }
+
+    // ÉTAPE 2 : Vérification que la saisie existe et peut être modifiée
+    const existingSaisie = await prisma.saisie.findUnique({
+      where: { id: saisieId },
+    });
+
+    if (!existingSaisie) {
+      return {
+        success: false,
+        error: 'Saisie non trouvée',
+      };
+    }
+
+    // Vérification que la saisie peut être modifiée (statut SAISI_EN_COURS uniquement)
+    if (existingSaisie.statut !== 'SAISI_EN_COURS') {
+      return {
+        success: false,
+        error: 'Cette saisie ne peut plus être modifiée car elle a déjà été validée ou annulée',
+      };
+    }
+
+    // ÉTAPE 3 : Validation des données avec Zod
+    const validatedData = createSaisieSchema.parse(data);
+
+    // ÉTAPE 4 : Vérification de l'unicité du numéro de châssis (si modifié)
+    // On autorise le même châssis si c'est la même saisie
+    if (validatedData.numeroChassis !== existingSaisie.numeroChassis) {
+      const duplicateSaisie = await prisma.saisie.findUnique({
+        where: {
+          numeroChassis: validatedData.numeroChassis,
+        },
+      });
+
+      if (duplicateSaisie) {
+        return {
+          success: false,
+          error: `Un véhicule avec le numéro de châssis "${validatedData.numeroChassis}" existe déjà`,
+        };
+      }
+    }
+
+    // ÉTAPE 5 : Mise à jour de la saisie dans la base de données
+    const updatedSaisie = await prisma.saisie.update({
+      where: { id: saisieId },
+      data: {
+        // Informations du véhicule (le châssis ne peut pas être modifié dans l'UI, mais on le garde pour sécurité)
+        numeroChassis: validatedData.numeroChassis,
+        marque: validatedData.marque,
+        modele: validatedData.modele,
+        typeVehicule: validatedData.typeVehicule,
+        immatriculation: validatedData.immatriculation || null,
+        
+        // Informations du conducteur
+        nomConducteur: validatedData.nomConducteur,
+        telephoneConducteur: validatedData.telephoneConducteur,
+        
+        // Informations de l'infraction
+        motifInfraction: validatedData.motifInfraction === 'Autre (préciser)' && validatedData.motifInfractionDetails
+          ? `${validatedData.motifInfraction}: ${validatedData.motifInfractionDetails}`
+          : validatedData.motifInfraction,
+        lieuSaisie: validatedData.lieuSaisie,
+        
+        // La date de saisie et le statut ne sont pas modifiés lors de l'édition
+      },
+    });
+
+    // ÉTAPE 6 : Création de l'entrée dans AuditLog pour la traçabilité
+    await prisma.auditLog.create({
+      data: {
+        action: 'MODIFICATION_SAISIE',
+        details: `Saisie modifiée pour le véhicule ${updatedSaisie.numeroChassis} par ${session.user.name || session.user.email}`,
+        userId: session.user.id,
+        saisieId: updatedSaisie.id,
+      },
+    });
+
+    // ÉTAPE 7 : Revalidation du cache Next.js
+    revalidatePath('/dashboard/saisies');
+    revalidatePath(`/dashboard/saisies/${saisieId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    // Gestion des erreurs de validation Zod
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: 'Les données fournies sont invalides. Veuillez vérifier que tous les champs obligatoires sont remplis.',
+      };
+    }
+
+    // Autres erreurs
+    console.error('Erreur lors de la modification de la saisie:', error);
+    return {
+      success: false,
+      error: 'Une erreur est survenue lors de la modification de la saisie. Veuillez réessayer.',
+    };
+  }
 }
 
