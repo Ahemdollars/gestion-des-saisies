@@ -52,10 +52,11 @@ export default async function DashboardLayout({
         </div>
 
         {/* Contenu de la page */}
-        {/* Sur mobile : marge en haut pour le menu burger, marge en bas pour la nav basse */}
+        {/* OPTIMISATION UX MOBILE : Augmentation de l'espacement en haut pour décoller le contenu du header */}
+        {/* Sur mobile : marge en haut plus importante pour le menu burger, marge en bas pour la nav basse */}
         {/* Sur desktop : marge en haut pour le header */}
         {/* pb-24 sur mobile pour laisser de l'espace à la barre de navigation basse */}
-        <main className="pt-16 md:pt-16 pb-24 md:pb-8 p-4 md:p-8">
+        <main className="pt-20 md:pt-16 pb-24 md:pb-8 px-4 md:p-8">
           {children}
         </main>
       </div>

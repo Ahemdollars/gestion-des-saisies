@@ -22,8 +22,9 @@ export function KPICard({
   href,
 }: KPICardProps) {
   // Contenu de la carte (réutilisable pour le lien ou la div)
+  {/* OPTIMISATION UX MOBILE : Padding adaptatif pour les cartes sur mobile */}
   const cardContent = (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all duration-200">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 md:p-6 hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
@@ -62,7 +63,8 @@ export function KPICard({
         className="block cursor-pointer group"
         aria-label={`Voir les détails de ${title}`}
       >
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-blue-200 transition-all duration-200 group-hover:scale-[1.02]">
+        {/* OPTIMISATION UX MOBILE : Padding adaptatif pour les cartes cliquables sur mobile */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 md:p-6 hover:shadow-lg hover:border-blue-200 transition-all duration-200 group-hover:scale-[1.02]">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>

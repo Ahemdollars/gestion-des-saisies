@@ -73,19 +73,21 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* En-tête de la page */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+      {/* OPTIMISATION UX MOBILE : Espacement supplémentaire en haut pour décoller du header */}
+      <div className="mt-4 md:mt-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Tableau de bord
         </h1>
-        <p className="text-gray-500 mt-2">
+        <p className="text-gray-500 mt-2 text-sm md:text-base">
           Vue d'ensemble de l'activité du système
         </p>
       </div>
 
       {/* Grille de cartes KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* OPTIMISATION UX MOBILE : Marges latérales suffisantes pour ne pas toucher les bords */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <KPICard
           title="Véhicules en dépôt"
           value={enDepot}

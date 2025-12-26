@@ -121,12 +121,14 @@ const MobileNavComponent = ({ userRole }: MobileNavProps) => {
   return (
     <>
       {/* Menu Burger en haut (visible uniquement sur mobile) */}
+      {/* OPTIMISATION UX MOBILE : Réduction de la hauteur du header pour gagner de l'espace vertical */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between py-2 px-4">
           {/* Logo */}
+          {/* OPTIMISATION UX MOBILE : Réduction de la taille de police pour gagner de l'espace */}
           <div>
-            <h1 className="text-lg font-bold text-white">DOUANES MALI</h1>
-            <p className="text-xs text-slate-400">Gestion des Saisies</p>
+            <h1 className="text-base font-bold text-white">DOUANES MALI</h1>
+            <p className="text-[10px] text-slate-400 leading-tight">Gestion des Saisies</p>
           </div>
           
           {/* Bouton Menu Burger */}
