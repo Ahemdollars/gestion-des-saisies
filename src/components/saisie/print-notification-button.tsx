@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 
 // Interface pour les données d'une saisie nécessaires à la notification
 interface SaisieNotificationData {
+  id?: string; // ID de la saisie pour générer le numéro de notification
   numeroChassis: string;
   marque: string;
   modele: string;

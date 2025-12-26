@@ -140,6 +140,7 @@ export default async function SaisieDetailPage({
               {/* Bouton d'impression */}
             <PrintNotificationButton
               saisie={{
+                id: saisie.id, // ID de la saisie pour générer le numéro de notification
                 numeroChassis: saisie.numeroChassis,
                 marque: saisie.marque,
                 modele: saisie.modele,
