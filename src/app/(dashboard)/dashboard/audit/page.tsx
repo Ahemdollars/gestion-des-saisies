@@ -5,6 +5,7 @@ import { Role } from '@prisma/client';
 import { Activity, Shield, User, Search, Filter } from 'lucide-react';
 import { AuditLogsTable } from '@/components/audit/audit-logs-table';
 import { AuditLogsFilters } from '@/components/audit/audit-logs-filters';
+import { AuditExportButton } from '@/components/audit/audit-export-button';
 
 // Page de journal d'audit
 // Route : /dashboard/audit
@@ -138,7 +139,7 @@ export default async function AuditPage({
     // Fond de page gris très clair style "Premium"
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* En-tête avec titre et icône */}
+        {/* En-tête avec titre, icône et bouton d'export */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Icône de sécurité pour indiquer l'importance de cette page */}
@@ -155,6 +156,10 @@ export default async function AuditPage({
               </p>
             </div>
           </div>
+          {/* Bouton d'export PDF */}
+          <AuditExportButton 
+            auditorName={session.user.name || session.user.email || 'Administrateur'} 
+          />
         </div>
 
         {/* Composant de filtres pour rechercher par utilisateur ou type d'action */}
