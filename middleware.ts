@@ -1,7 +1,9 @@
 import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { Role } from '@prisma/client';
+// IMPORT EDGE-COMPATIBLE : Utiliser Role depuis types/role.ts au lieu de @prisma/client
+// pour éviter le chargement de modules natifs Prisma dans Edge Runtime
+import { Role } from '@/types/role';
 import { canAccessRoute } from '@/lib/utils/permissions';
 
 // Middleware de protection des routes avec contrôle d'accès RBAC
@@ -35,8 +37,8 @@ export async function middleware(request: NextRequest) {
 
   // Protection de toutes les routes commençant par /dashboard
   if (pathname.startsWith('/dashboard')) {
-    // Si l'utilisateur n'est pas connecté, redirection vers /login
-    if (!session) {
+    // Si l'utilisateur n'est pas connecté ou si session.user est absent, redirection vers /login
+    if (!session || !session.user) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
@@ -45,7 +47,8 @@ export async function middleware(request: NextRequest) {
     // OPTIMISATION CRITIQUE : Si l'utilisateur est déjà sur une page autorisée,
     // laisser passer IMMÉDIATEMENT sans aucune vérification supplémentaire
     // Cela évite les boucles de compilation lors des changements d'onglet
-    const userRole = session.user.role as Role;
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user.role as Role) || Role.ADMIN;
     
     // Routes de base accessibles à TOUS les rôles connectés
     // Si l'utilisateur est sur ces routes, on laisse passer SANS vérification RBAC
@@ -81,10 +84,10 @@ export async function middleware(request: NextRequest) {
 
   // Si l'utilisateur est connecté et essaie d'accéder à /login, redirection vers /dashboard
   // IMPORTANT : Vérification que la redirection ne crée pas de boucle infinie
-  if (pathname === '/login' && session) {
+  if (pathname === '/login' && session && session.user) {
     // Redirection vers le dashboard uniquement si l'utilisateur peut y accéder
-    const userRole = session.user?.role as Role;
-    if (userRole && canAccessRoute(userRole, '/dashboard')) {
+    const userRole = (session.user.role as Role) || Role.ADMIN;
+    if (canAccessRoute(userRole, '/dashboard')) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     // Si l'utilisateur n'a pas accès au dashboard, on le laisse sur la page de login

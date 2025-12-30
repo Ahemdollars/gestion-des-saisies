@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -16,13 +17,13 @@ async function main() {
   }
 
   // Créer l'utilisateur admin
-  // NOTE: Le mot de passe 'admin123' est temporaire et non hashé.
-  // Dans la production, il faudra utiliser bcrypt pour hasher les mots de passe.
-  // Pour l'instant, on simule avec une chaîne simple pour le développement.
+  // Le mot de passe 'admin123' est hashé avec bcrypt (salt rounds: 10)
+  // Sécurité : Le mot de passe n'est jamais stocké en texte clair
+  const hashedPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.create({
     data: {
       email: 'admin@douanes.ml',
-      motDePasse: 'admin123', // TODO: Hasher avec bcrypt en production
+      motDePasse: hashedPassword, // Utilisez la version hachée ici
       nom: 'Super',
       prenom: 'Admin',
       role: Role.ADMIN,

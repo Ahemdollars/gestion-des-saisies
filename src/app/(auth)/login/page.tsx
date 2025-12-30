@@ -40,28 +40,59 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    // Logs de débogage côté client
+    console.log('[LOGIN_FORM_DEBUG] ========================================');
+    console.log('[LOGIN_FORM_DEBUG] Soumission du formulaire');
+    console.log('[LOGIN_FORM_DEBUG] Email saisi:', email);
+    console.log('[LOGIN_FORM_DEBUG] Mot de passe saisi:', password ? '***' : 'VIDE');
+    console.log('[LOGIN_FORM_DEBUG] Longueur email:', email.length);
+    console.log('[LOGIN_FORM_DEBUG] Longueur password:', password.length);
+
     try {
+      // Préparation des credentials pour NextAuth
+      const credentials = {
+        email: email.trim(),
+        password: password,
+      };
+
+      console.log('[LOGIN_FORM_DEBUG] Credentials préparés:', {
+        email: credentials.email,
+        password: credentials.password ? '***' : 'VIDE',
+      });
+
       // Tentative de connexion via NextAuth
       // La configuration dans auth.config.ts gère l'authentification selon les rôles
+      console.log('[LOGIN_FORM_DEBUG] Appel à signIn("credentials", {...})');
       const result = await signIn('credentials', {
-        email,
-        password,
+        ...credentials,
         redirect: false,
+      });
+
+      console.log('[LOGIN_FORM_DEBUG] Résultat de signIn:', {
+        error: result?.error || null,
+        ok: result?.ok || false,
+        status: result?.status || null,
+        url: result?.url || null,
       });
 
       if (result?.error) {
         // Affichage de l'erreur si les identifiants sont incorrects
+        console.log('[LOGIN_FORM_DEBUG] ❌ Erreur de connexion:', result.error);
         setError('Email ou mot de passe incorrect');
         setIsLoading(false);
       } else {
         // Redirection vers le dashboard en cas de succès
+        console.log('[LOGIN_FORM_DEBUG] ✅ Connexion réussie, redirection...');
         // Le middleware gère les redirections selon les rôles
         router.push('/dashboard');
         router.refresh();
       }
     } catch (err) {
+      console.error('[LOGIN_FORM_DEBUG] ❌ Exception lors de la connexion:', err);
       setError('Une erreur est survenue. Veuillez réessayer.');
       setIsLoading(false);
+    } finally {
+      console.log('[LOGIN_FORM_DEBUG] ========================================');
     }
   };
 

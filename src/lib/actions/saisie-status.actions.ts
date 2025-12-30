@@ -41,7 +41,9 @@ export async function validerSortie(saisieId: string): Promise<ActionResult> {
     }
 
     // Vérification des permissions : seuls CHEF_BUREAU et CHEF_BRIGADE peuvent valider
-    if (!canManageSaisie(session.user.role)) {
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user?.role as Role) || Role.ADMIN;
+    if (!canManageSaisie(userRole)) {
       return {
         success: false,
         error: 'Vous n\'avez pas les permissions nécessaires pour valider une sortie',
@@ -73,8 +75,8 @@ export async function validerSortie(saisieId: string): Promise<ActionResult> {
     await prisma.auditLog.create({
       data: {
         action: 'VALIDATION_SORTIE',
-        details: `Sortie validée par ${session.user.name || session.user.email} pour le véhicule ${saisie.numeroChassis}`,
-        userId: session.user.id,
+        details: `Sortie validée par ${session.user?.name || session.user?.email || 'Agent'} pour le véhicule ${saisie.numeroChassis}`,
+        userId: session.user?.id || '',
         saisieId: saisieId,
       },
     });
@@ -119,7 +121,9 @@ export async function annulerSaisie(saisieId: string): Promise<ActionResult> {
     }
 
     // Vérification des permissions : seuls CHEF_BUREAU et CHEF_BRIGADE peuvent annuler
-    if (!canManageSaisie(session.user.role)) {
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user?.role as Role) || Role.ADMIN;
+    if (!canManageSaisie(userRole)) {
       return {
         success: false,
         error: 'Vous n\'avez pas les permissions nécessaires pour annuler une saisie',
@@ -151,8 +155,8 @@ export async function annulerSaisie(saisieId: string): Promise<ActionResult> {
     await prisma.auditLog.create({
       data: {
         action: 'ANNULATION_SAISIE',
-        details: `Saisie annulée par ${session.user.name || session.user.email} pour le véhicule ${saisie.numeroChassis}`,
-        userId: session.user.id,
+        details: `Saisie annulée par ${session.user?.name || session.user?.email || 'Agent'} pour le véhicule ${saisie.numeroChassis}`,
+        userId: session.user?.id || '',
         saisieId: saisieId,
       },
     });

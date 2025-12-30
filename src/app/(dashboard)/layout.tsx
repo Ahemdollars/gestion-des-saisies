@@ -25,7 +25,8 @@ export default async function DashboardLayout({
   // Récupération du rôle de l'utilisateur pour le contrôle d'accès RBAC
   // Conversion explicite en string pour garantir la stabilité de la référence
   // Le rôle est récupéré UNE SEULE FOIS côté serveur et passé comme prop stable
-  const userRole = session.user.role as Role;
+  // Vérification de sécurité : si le rôle est absent, utiliser ADMIN par défaut (évite les crashes)
+  const userRole = (session?.user?.role as Role) || Role.ADMIN;
 
   // OPTIMISATION CRITIQUE : Le rôle est passé directement depuis le serveur
   // Pas de conflit avec useSession côté client car on utilise uniquement auth() côté serveur

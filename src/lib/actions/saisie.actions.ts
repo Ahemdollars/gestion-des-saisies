@@ -91,7 +91,7 @@ export async function createSaisie(
         lieuSaisie: validatedData.lieuSaisie,
         
         // Données automatiques
-        agentId: session.user.id, // ID de l'agent connecté récupéré depuis la session
+        agentId: session.user?.id || '', // ID de l'agent connecté récupéré depuis la session
         statut: 'SAISI_EN_COURS', // Statut par défaut : toute nouvelle saisie est "en cours"
         dateSaisie: new Date(), // Date et heure actuelles de la création
         
@@ -108,8 +108,8 @@ export async function createSaisie(
       data: {
         action: 'CREATION_SAISIE',
         // Message d'audit : "Nouvelle saisie effectuée pour le véhicule [N° Châssis]"
-        details: `Nouvelle saisie effectuée pour le véhicule ${validatedData.numeroChassis} par ${session.user.name || session.user.email}`,
-        userId: session.user.id, // ID de l'utilisateur qui a effectué l'action
+        details: `Nouvelle saisie effectuée pour le véhicule ${validatedData.numeroChassis} par ${session.user?.name || session.user?.email || 'Agent'}`,
+        userId: session.user?.id || '', // ID de l'utilisateur qui a effectué l'action
         saisieId: saisie.id, // ID de la saisie créée
       },
     });
@@ -241,8 +241,8 @@ export async function updateSaisie(
     await prisma.auditLog.create({
       data: {
         action: 'MODIFICATION_SAISIE',
-        details: `Saisie modifiée pour le véhicule ${updatedSaisie.numeroChassis} par ${session.user.name || session.user.email}`,
-        userId: session.user.id,
+        details: `Saisie modifiée pour le véhicule ${updatedSaisie.numeroChassis} par ${session.user?.name || session.user?.email || 'Agent'}`,
+        userId: session.user?.id || '',
         saisieId: updatedSaisie.id,
       },
     });

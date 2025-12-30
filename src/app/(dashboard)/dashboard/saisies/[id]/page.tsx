@@ -32,7 +32,7 @@ export default async function SaisieDetailPage({
   const session = await auth();
 
   // Vérification de sécurité
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 
@@ -79,10 +79,13 @@ export default async function SaisieDetailPage({
 
   // Vérification des permissions pour les actions de direction
   // Seuls ADMIN, CHEF_BUREAU et CHEF_BRIGADE peuvent valider/annuler
+  // Vérification de sécurité : vérifier que session.user et le rôle existent
+  const userRole = session?.user?.role;
+  const userId = session?.user?.id;
   const canManage = 
-    session.user.role === 'ADMIN' || 
-    session.user.role === 'CHEF_BUREAU' || 
-    session.user.role === 'CHEF_BRIGADE';
+    userRole === 'ADMIN' || 
+    userRole === 'CHEF_BUREAU' || 
+    userRole === 'CHEF_BRIGADE';
 
   // Vérification si la saisie peut être modifiée
   // Une saisie peut être modifiée si :
@@ -90,7 +93,8 @@ export default async function SaisieDetailPage({
   // 2. L'utilisateur est l'agent qui a créé la saisie OU un ADMIN
   const canEdit = 
     saisie.statut === 'SAISI_EN_COURS' && 
-    (saisie.agentId === session.user.id || session.user.role === 'ADMIN');
+    userId && 
+    (saisie.agentId === userId || userRole === 'ADMIN');
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] -m-8 p-8">

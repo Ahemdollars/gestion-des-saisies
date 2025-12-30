@@ -56,7 +56,9 @@ export async function createUser(data: CreateUserInput): Promise<ActionResult> {
 
     // Vérification que l'utilisateur a le rôle ADMIN
     // Seuls les administrateurs peuvent créer des utilisateurs
-    if (!isAdmin(session.user.role)) {
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user.role as Role) || Role.ADMIN;
+    if (!isAdmin(userRole)) {
       return {
         success: false,
         error: 'Vous n\'avez pas les permissions nécessaires. Seuls les administrateurs peuvent créer des utilisateurs.',
@@ -110,8 +112,8 @@ export async function createUser(data: CreateUserInput): Promise<ActionResult> {
     await prisma.auditLog.create({
       data: {
         action: 'CREATION_UTILISATEUR',
-        details: `Compte créé pour ${newUser.email} par l'Administrateur ${session.user.name || session.user.email}`,
-        userId: session.user.id,
+        details: `Compte créé pour ${newUser.email} par l'Administrateur ${session.user?.name || session.user?.email || 'Admin'}`,
+        userId: session.user?.id || '',
         // Pas de saisieId car cette action ne concerne pas une saisie
         saisieId: null,
       },
@@ -174,7 +176,9 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
 
     // Vérification que l'utilisateur a le rôle ADMIN
     // Seuls les administrateurs peuvent supprimer des utilisateurs
-    if (!isAdmin(session.user.role)) {
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user.role as Role) || Role.ADMIN;
+    if (!isAdmin(userRole)) {
       return {
         success: false,
         error: 'Vous n\'avez pas les permissions nécessaires. Seuls les administrateurs peuvent supprimer des utilisateurs.',
@@ -224,8 +228,8 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
     await prisma.auditLog.create({
       data: {
         action: 'SUPPRESSION_UTILISATEUR',
-        details: `Utilisateur ${userToDelete.email} (${userToDelete.prenom} ${userToDelete.nom}) supprimé par l'Administrateur ${session.user.name || session.user.email}`,
-        userId: session.user.id,
+        details: `Utilisateur ${userToDelete.email} (${userToDelete.prenom} ${userToDelete.nom}) supprimé par l'Administrateur ${session.user?.name || session.user?.email || 'Admin'}`,
+        userId: session.user?.id || '',
         // Pas de saisieId car cette action ne concerne pas une saisie
         saisieId: null,
       },

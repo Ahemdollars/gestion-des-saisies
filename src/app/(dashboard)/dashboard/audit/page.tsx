@@ -23,13 +23,14 @@ export default async function AuditPage({
   const params = await searchParams;
 
   // Vérification de sécurité : redirection si non connecté
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 
   // Contrôle d'accès strict : seuls les ADMIN peuvent accéder à cette page
   // Si l'utilisateur n'est pas ADMIN, redirection vers le dashboard avec message d'erreur
-  if (session.user.role !== Role.ADMIN) {
+  // Vérification de sécurité : vérifier que le rôle existe avant la comparaison
+  if (!session.user.role || session.user.role !== Role.ADMIN) {
     redirect('/dashboard?error=access_denied');
   }
 

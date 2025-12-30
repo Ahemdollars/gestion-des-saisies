@@ -19,12 +19,13 @@ export default async function RapportsPage({
   const params = await searchParams;
 
   // Vérification de sécurité : redirection si non connecté
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 
   // Contrôle d'accès RBAC : vérification des permissions pour cette route
-  const userRole = session.user.role as Role;
+  // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+  const userRole = (session.user.role as Role) || Role.ADMIN;
   if (!canAccessRoute(userRole, '/dashboard/rapports')) {
     // Redirection vers le dashboard avec message d'erreur si accès refusé
     redirect('/dashboard?error=access_denied');

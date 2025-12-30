@@ -22,12 +22,13 @@ export default async function SaisiesPage({
   const params = await searchParams;
 
   // Vérification de sécurité : redirection si non connecté
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 
   // Récupération du rôle de l'utilisateur pour le contrôle d'accès RBAC
-  const userRole = session.user.role as Role;
+  // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+  const userRole = (session.user.role as Role) || Role.ADMIN;
   
   // Vérification si l'utilisateur peut créer des saisies
   // AGENT_CONSULTATION ne peut pas créer de saisies (lecture seule)

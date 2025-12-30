@@ -20,7 +20,8 @@ export default async function UtilisateursPage() {
 
   // Contrôle d'accès : seuls les ADMIN peuvent accéder à cette page
   // Si l'utilisateur n'est pas ADMIN, redirection vers le dashboard avec message d'erreur
-  if (session.user.role !== Role.ADMIN) {
+  // Vérification de sécurité : vérifier que session.user et le rôle existent avant la comparaison
+  if (!session.user || !session.user.role || session.user.role !== Role.ADMIN) {
     redirect('/dashboard?error=access_denied');
   }
 

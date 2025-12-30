@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const session = await auth();
 
   // Vérification de sécurité
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 

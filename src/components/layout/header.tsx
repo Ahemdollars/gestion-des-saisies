@@ -6,6 +6,11 @@ import { Bell, Search } from 'lucide-react';
 export async function Header() {
   const session = await auth();
 
+  // Vérification de sécurité : si la session ou l'utilisateur est absent, afficher des valeurs par défaut
+  const userName = session?.user?.name || session?.user?.email || 'Utilisateur';
+  const userRole = session?.user?.role || 'Rôle';
+  const userInitial = userName.charAt(0).toUpperCase();
+
   return (
     <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 z-10">
       <div className="h-full px-6 flex items-center justify-between">
@@ -33,16 +38,14 @@ export async function Header() {
           <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900">
-                {session?.user?.name || 'Utilisateur'}
+                {userName}
               </p>
               <p className="text-xs text-gray-500">
-                {session?.user?.role || 'Rôle'}
+                {userRole}
               </p>
             </div>
             <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-              {(session?.user?.name || session?.user?.email || 'U')
-                .charAt(0)
-                .toUpperCase()}
+              {userInitial}
             </div>
           </div>
         </div>

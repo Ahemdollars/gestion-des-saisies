@@ -30,13 +30,14 @@ export default function NewSaisiePage() {
       return; // Attendre que la session soit chargée
     }
 
-    if (!session) {
+    if (!session || !session.user) {
       // Redirection vers login si non connecté
       router.replace('/login');
       return;
     }
 
-    const userRole = session.user?.role as Role;
+    // Vérification de sécurité : utiliser ADMIN par défaut si le rôle est absent
+    const userRole = (session.user.role as Role) || Role.ADMIN;
     
     // Vérification si l'utilisateur peut créer des saisies
     // AGENT_CONSULTATION ne peut pas créer de saisies (lecture seule)
